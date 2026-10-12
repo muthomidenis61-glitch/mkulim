@@ -39,9 +39,24 @@ export async function requireUser(event) {
   if (!user?.id || !user.email) throw new Error("Your session is invalid. Please sign in again.");
   return user;
 }
+// Use this guard at the start of every premium-only Netlify function.
+// It verifies the signed-in identity and checks entitlement against server-side rows.
+export async function requireActiveAccess(event) {
+  const user = await requireUser(event);
+  const now = new Date().toISOString();
+  const [subs, trials] = await Promise.all([
+    adminRest("mkulima_subscriptions", { query: "?select=plan,ends_at&user_id=eq." + encodeURIComponent(user.id) + "&status=eq.active&ends_at=gt." + encodeURIComponent(now) + "&order=ends_at.desc&limit=1" }),
+    adminRest("mkulima_trials", { query: "?select=ends_at&user_id=eq." + encodeURIComponent(user.id) + "&ends_at=gt." + encodeURIComponent(now) + "&limit=1" })
+  ]);
+  if (subs[0]) return { user, access: { active: true, source: "paid", plan: subs[0].plan, expiresAt: subs[0].ends_at } };
+  if (trials[0]) return { user, access: { active: true, source: "trial", plan: "Discovery Pass", expiresAt: trials[0].ends_at } };
+  const error = new Error("An active MKULIMA subscription or Discovery Pass is required to use this premium service.");
+  error.statusCode = 403;
+  throw error;
+}
 export function fail(error) {
   const message = String(error?.message || "Unexpected server error.");
-  const statusCode = /sign in|session|invalid credentials|email not confirmed/i.test(message) ? 401 : /configuration is missing|SUPABASE_|DARAJA_/i.test(message) ? 503 : 400;
+  const statusCode = Number(error?.statusCode) || (/sign in|session|invalid credentials|email not confirmed/i.test(message) ? 401 : /configuration is missing|SUPABASE_|DARAJA_/i.test(message) ? 503 : 400);
   return json(statusCode, { error: statusCode === 503 ? "Subscription service is not fully configured yet. The site owner must finish secure server settings." : message });
 }
 export function normalizeKenyanPhone(value) {
