@@ -405,3 +405,36 @@ jobs:
           print("PASS: animal health record form, local storage, withdrawal reminders, backup/restore and dashboard link.")
           PY
           node --check /tmp/mkulima-animal-health.js
+
+
+      - name: Validate Veterinary Intelligence page and dashboard entry
+        shell: bash
+        run: |
+          set -e
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          page = Path("veterinary.html").read_text(encoding="utf-8")
+          dashboard = Path("index.html").read_text(encoding="utf-8")
+          required = [
+            "MKULIMA Veterinary Intelligence",
+            "Avenqor Holdings Ltd",
+            "not a diagnosis",
+            "qualified veterinary professional",
+            "Kenya Animal Health Surveillance Dashboard",
+            "not yet receive a live government data feed",
+            "Commercial",
+            "Enterprise",
+          ]
+          missing = [term for term in required if term.lower() not in page.lower()]
+          if missing:
+            raise SystemExit("FAIL: Veterinary Intelligence page missing: " + ", ".join(missing))
+          if "/veterinary.html" not in dashboard or "Veterinary Intelligence" not in dashboard:
+            raise SystemExit("FAIL: Veterinary Intelligence is not linked from the dashboard")
+          scripts = re.findall(r"<script[^>]*>(.*?)</script>", page, flags=re.I | re.S)
+          if not scripts:
+            raise SystemExit("FAIL: Veterinary Intelligence page has no JavaScript")
+          Path("/tmp/mkulima-veterinary.js").write_text("\n;\n".join(scripts), encoding="utf-8")
+          print("PASS: Veterinary Intelligence page, safety disclaimers, plan labels, and dashboard link.")
+          PY
+          node --check /tmp/mkulima-veterinary.js
