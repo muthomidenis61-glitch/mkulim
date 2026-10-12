@@ -86,7 +86,7 @@ button,input,select,textarea{touch-action:manipulation}
       <div class="form-grid">
         <div class="field"><label for="subject">What needs attention?</label><select id="subject"><option>Crop</option><option>Dairy cow</option><option>Calf</option><option>Poultry</option><option>Pig</option><option>Goat or sheep</option><option>Other animal</option></select></div>
         <div class="field"><label for="cropType">Crop / animal / breed</label><input id="cropType" placeholder="e.g. maize, dairy cow, layers"></div>
-        <div class="field full"><label for="symptoms">Describe the symptoms or problem</label><textarea id="symptoms" required placeholder="When did it start? What changed? How many plants/animals are affected?"></textarea></div>
+        <div class="field full"><label for="symptoms">Describe the symptoms or problem</label><textarea id="symptoms" required placeholder="When did it start? What changed? How many plants/animals are affected?"></textarea><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px"><button class="btn light small" type="button" id="voiceInputBtn" aria-describedby="voiceInputStatus">🎙️ Describe by voice</button><span id="voiceInputStatus" class="muted" role="status" aria-live="polite">Optional voice typing; browser support and internet access may be required.</span></div></div>
         <div class="field"><label for="duration">How long has this been happening?</label><select id="duration"><option>Today</option><option>1–3 days</option><option>4–7 days</option><option>More than a week</option><option>Not sure</option></select></div>
         <div class="field"><label for="photo">Attach a photo (optional)</label><input type="file" id="photo" accept="image/*"></div>
       </div>
@@ -202,6 +202,27 @@ function addMessage(text,who){let el=document.createElement('div');el.className=
 function ask(q){if(!q.trim())return;addMessage(q,'user');setTimeout(()=>addMessage(assistantReply(q),'bot'),250)}
 $('chatForm').addEventListener('submit',e=>{e.preventDefault();let q=$('chatInput').value.trim();$('chatInput').value='';ask(q)});
 function quickAsk(q){navigate('assistant');ask(q)}
+const voiceButton=$('voiceInputBtn'), voiceStatus=$('voiceInputStatus');
+if(voiceButton){
+  voiceButton.addEventListener('click',()=>{
+    const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SpeechRecognition){voiceStatus.textContent='Voice typing is not supported by this browser. You can use your phone keyboard microphone instead.';toast('Try the microphone on your phone keyboard.');return}
+    const recognition=new SpeechRecognition();
+    recognition.lang=navigator.language||'en-KE';
+    recognition.interimResults=false;
+    recognition.maxAlternatives=1;
+    voiceButton.disabled=true;
+    voiceStatus.textContent='Listening… Speak clearly, then wait for the result.';
+    recognition.onresult=event=>{
+      const transcript=event.results&&event.results[0]&&event.results[0][0]?event.results[0][0].transcript:'';
+      if(transcript){$('symptoms').value=($('symptoms').value.trim()?$('symptoms').value.trim()+' ':'')+transcript;voiceStatus.textContent='Voice text added. Please review it before submitting.'}
+      else voiceStatus.textContent='No speech was detected. Please try again or type your symptoms.';
+    };
+    recognition.onerror=event=>{voiceStatus.textContent=event.error==='not-allowed'?'Microphone permission was denied. You can type instead.':'Voice typing could not complete. Try again or use your phone keyboard microphone.'};
+    recognition.onend=()=>{voiceButton.disabled=false};
+    try{recognition.start()}catch(error){voiceButton.disabled=false;voiceStatus.textContent='Could not start the microphone. Please try again or type instead.'}
+  });
+}
 $('doctorForm').addEventListener('submit',e=>{e.preventDefault();let subject=$('subject').value,what=$('cropType').value||subject.toLowerCase(),sym=$('symptoms').value,dur=$('duration').value;let file=$('photo').files[0];if(file&&(!file.type||!file.type.startsWith('image/'))){toast('Please select a valid image file.');return}if(file&&file.size>8*1024*1024){toast('Photo is larger than 8 MB. Choose a smaller photo to save mobile data.');return}let animal=/cow|calf|poultry|pig|goat|sheep|animal/i.test(subject);let urgent=animal?' <p class="notice danger"><b>Urgent:</b> Trouble breathing, collapse or inability to stand, severe bleeding, suspected poisoning, sudden deaths, or a rapidly spreading illness needs prompt veterinary help. Keep potentially sick animals separated when safe and avoid unprescribed medicines.</p>':'';let msg=`<strong>Assessment prepared — ${esc(what)}</strong><p>Type: ${esc(subject)} · Duration: ${esc(dur)}</p><p><b>Your report:</b> ${esc(sym)}</p><p>${file?'A photo was selected ('+(file.size/1024/1024).toFixed(1)+' MB), but image analysis is not connected in this prototype. The image has not been diagnosed.':'No photo attached.'}</p><p><b>Next step:</b> Record when it started, how many plants/animals are affected, recent weather/feed/input changes, and any other symptoms. A qualified local professional may need to examine the crop/animal.</p>${urgent}<p style="font-size:12px;color:#765222">This is not a diagnosis and no disease has been confirmed.</p>`;$('doctorResult').innerHTML=msg;$('doctorResult').classList.remove('hidden')});
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function money(n){return 'KSh '+Number(n||0).toLocaleString('en-KE',{maximumFractionDigits:2})}
