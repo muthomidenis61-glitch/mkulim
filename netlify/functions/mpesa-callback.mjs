@@ -22,14 +22,16 @@ export default async event => {
     const payment = matches[0];
     if (!payment) return { statusCode: 200, body: JSON.stringify({ ResultCode: 0, ResultDesc: "Unmatched callback ignored" }) };
     if (payment.status === "paid" || payment.status === "failed") return { statusCode: 200, body: JSON.stringify({ ResultCode: 0, ResultDesc: "Already processed" }) };
-    const query = await querySafaricom(stk.CheckoutRequestID);
-    const verified = String(query.ResultCode) === "0" && Number(query.Amount) === Number(payment.amount_kes) && String(query.CheckoutRequestID) === String(payment.checkout_request_id);
-    if (!verified) {
-      const failed = Number(query.ResultCode) !== 0;
-      if (failed) await adminRest("mkulima_payments", { method:"PATCH", query:"?checkout_request_id=eq."+encodeURIComponent(payment.checkout_request_id)+"&status=eq.pending", body:{status:"failed",result_description:String(query.ResultDesc || stk.ResultDesc || "Payment not completed").slice(0,240),updated_at:new Date().toISOString()}, prefer:"return=minimal" });
-      return { statusCode: 200, headers:{"Content-Type":"application/json"}, body:JSON.stringify({ResultCode:0,ResultDesc:"Received; payment not activated without verification"}) };
+    if (Number(stk.ResultCode) !== 0) {
+      await adminRest("mkulima_payments", { method:"PATCH", query:"?checkout_request_id=eq."+encodeURIComponent(payment.checkout_request_id)+"&status=eq.pending", body:{status:"failed",result_description:String(stk.ResultDesc || "Payment not completed").slice(0,240),updated_at:new Date().toISOString()}, prefer:"return=minimal" });
+      return { statusCode: 200, headers:{"Content-Type":"application/json"}, body:JSON.stringify({ResultCode:0,ResultDesc:"Payment failure recorded"}) };
     }
-    const items = query.CallbackMetadata?.Item || [];
+    // Safaricom STK query confirms the server-side transaction outcome. Amount,
+    // phone and receipt are taken from the corresponding callback metadata.
+    const query = await querySafaricom(stk.CheckoutRequestID);
+    const verified = String(query.ResultCode) === "0" && String(query.CheckoutRequestID) === String(payment.checkout_request_id);
+    if (!verified) return { statusCode: 200, headers:{"Content-Type":"application/json"}, body:JSON.stringify({ResultCode:0,ResultDesc:"Received; payment not activated without verification"}) };
+    const items = stk.CallbackMetadata?.Item || [];
     const meta = Object.fromEntries(items.map(i=>[i.Name,i.Value]));
     if (!meta.MpesaReceiptNumber || Number(meta.Amount) !== Number(payment.amount_kes) || String(meta.PhoneNumber) !== String(payment.phone)) {
       await adminRest("mkulima_payments", {method:"PATCH",query:"?checkout_request_id=eq."+encodeURIComponent(payment.checkout_request_id)+"&status=eq.pending",body:{status:"review",result_description:"Safaricom details require reconciliation",updated_at:new Date().toISOString()},prefer:"return=minimal"});
