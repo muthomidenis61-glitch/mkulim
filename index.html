@@ -74,7 +74,7 @@ button,input,select,textarea{touch-action:manipulation}
   <div class="card chatbox">
     <div class="messages" id="messages"><div class="bubble bot">Habari, mkulima! 🌱 I’m MKULIMA. What are you working on today? Ask about crops, animals, feed costs, farm planning or farm business.</div></div>
     <div style="display:flex;flex-wrap:wrap;gap:7px"><button class="btn light small" onclick="quickAsk('My maize leaves are turning yellow. What should I check?')">🌽 Yellow maize leaves</button><button class="btn light small" onclick="quickAsk('Help me calculate dairy feed costs.')">🐄 Dairy feed costs</button><button class="btn light small" onclick="quickAsk('How do I start keeping farm records?')">📒 Farm records</button></div>
-    <form class="chat-form" id="chatForm"><input id="chatInput" placeholder="Ask MKULIMA a farming question…" required><button class="btn dark">Send ↑</button></form>
+    <div class="form-grid" style="margin-top:8px"><div class="field"><label for="voiceLanguageAssistant">Voice language / Lugha ya sauti</label><select id="voiceLanguageAssistant"><option value="sw-KE">Kiswahili (Kenya)</option><option value="en-KE" selected>English (Kenya)</option><option value="device">Use phone language</option></select></div><div class="field" style="align-content:end"><button class="btn light" type="button" id="assistantVoiceBtn" aria-describedby="assistantVoiceStatus">🎙️ Ask by voice / Uliza kwa sauti</button><span id="assistantVoiceStatus" class="muted" role="status" aria-live="polite" style="font-size:12px">Select a language first. / Chagua lugha kwanza.</span></div></div><form class="chat-form" id="chatForm"><input id="chatInput" placeholder="Ask MKULIMA / Uliza MKULIMA…" required><button class="btn dark">Send / Tuma ↑</button></form>
   </div>
   <div class="notice">Safety first: demo answers are general guidance, not a diagnosis. Serious animal illness, suspected contagious disease, poisoning, sudden deaths or rapidly spreading crop damage require qualified local assistance.</div>
 </section>
@@ -87,7 +87,7 @@ button,input,select,textarea{touch-action:manipulation}
       <div class="form-grid">
         <div class="field"><label for="subject">What needs attention?</label><select id="subject"><option>Crop</option><option>Dairy cow</option><option>Calf</option><option>Poultry</option><option>Pig</option><option>Goat or sheep</option><option>Other animal</option></select></div>
         <div class="field"><label for="cropType">Crop / animal / breed</label><input id="cropType" placeholder="e.g. maize, dairy cow, layers"></div>
-        <div class="field full"><label for="symptoms">Describe the symptoms or problem</label><textarea id="symptoms" required placeholder="When did it start? What changed? How many plants/animals are affected?"></textarea><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px"><button class="btn light small" type="button" id="voiceInputBtn" aria-describedby="voiceInputStatus">🎙️ Describe by voice</button><span id="voiceInputStatus" class="muted" role="status" aria-live="polite">Optional voice typing; browser support and internet access may be required.</span></div></div>
+        <div class="field full"><label for="symptoms">Describe the symptoms or problem</label><textarea id="symptoms" required placeholder="When did it start? What changed? How many plants/animals are affected?"></textarea><div style="display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin-top:8px"><label for="voiceLanguageDoctor" style="font-size:12px;font-weight:800;color:#4c5d53">Voice language / Lugha ya sauti</label><select id="voiceLanguageDoctor" aria-label="Choose voice language"><option value="sw-KE">Kiswahili (Kenya)</option><option value="en-KE" selected>English (Kenya)</option><option value="device">Use phone language</option></select><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn light small" type="button" id="voiceInputBtn" aria-describedby="voiceInputStatus">🎙️ Speak / Zungumza</button><span id="voiceInputStatus" class="muted" role="status" aria-live="polite">Choose English or Kiswahili, speak, then review the text before submitting. / Chagua lugha, zungumza, kisha hakiki maandishi.</span></div></div></div>
         <div class="field"><label for="duration">How long has this been happening?</label><select id="duration"><option>Today</option><option>1–3 days</option><option>4–7 days</option><option>More than a week</option><option>Not sure</option></select></div>
         <div class="field"><label for="photo">Attach a photo (optional)</label><input type="file" id="photo" accept="image/*"></div>
       </div>
@@ -213,27 +213,47 @@ function addMessage(text,who){let el=document.createElement('div');el.className=
 function ask(q){if(!q.trim())return;addMessage(q,'user');setTimeout(()=>addMessage(assistantReply(q),'bot'),250)}
 $('chatForm').addEventListener('submit',e=>{e.preventDefault();let q=$('chatInput').value.trim();$('chatInput').value='';ask(q)});
 function quickAsk(q){navigate('assistant');ask(q)}
-const voiceButton=$('voiceInputBtn'), voiceStatus=$('voiceInputStatus');
-if(voiceButton){
-  voiceButton.addEventListener('click',()=>{
-    const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-    if(!SpeechRecognition){voiceStatus.textContent='Voice typing is not supported by this browser. You can use your phone keyboard microphone instead.';toast('Try the microphone on your phone keyboard.');return}
-    const recognition=new SpeechRecognition();
-    recognition.lang=navigator.language||'en-KE';
-    recognition.interimResults=false;
+function startMkulimaVoice({buttonId,statusId,targetId,languageId,append=false}){
+  const button=$(buttonId),status=$(statusId),target=$(targetId),language=$(languageId);
+  if(!button||!status||!target||!language)return;
+  button.addEventListener('click',()=>{
+    const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!Recognition){status.textContent='Voice recognition is unavailable in this browser. Use your phone keyboard microphone instead. / Sauti haipatikani hapa; tumia maikrofoni ya kibodi ya simu.';toast('Try your phone keyboard microphone. / Jaribu maikrofoni ya kibodi.');return}
+    const recognition=new Recognition();
+    const selected=language.value;
+    recognition.lang=selected==='device'?(navigator.language||'en-KE'):selected;
+    recognition.continuous=false;
+    recognition.interimResults=true;
     recognition.maxAlternatives=1;
-    voiceButton.disabled=true;
-    voiceStatus.textContent='Listening… Speak clearly, then wait for the result.';
+    button.disabled=true;
+    status.textContent=recognition.lang==='sw-KE'?'Inasikiliza… Zungumza sasa.':'Listening… Speak now.';
+    let finalTranscript='';
     recognition.onresult=event=>{
-      const transcript=event.results&&event.results[0]&&event.results[0][0]?event.results[0][0].transcript:'';
-      if(transcript){$('symptoms').value=($('symptoms').value.trim()?$('symptoms').value.trim()+' ':'')+transcript;voiceStatus.textContent='Voice text added. Please review it before submitting.'}
-      else voiceStatus.textContent='No speech was detected. Please try again or type your symptoms.';
+      let interim='';
+      for(let i=event.resultIndex;i<event.results.length;i++){
+        const part=event.results[i][0].transcript||'';
+        if(event.results[i].isFinal)finalTranscript+=part;else interim+=part;
+      }
+      if(interim)status.textContent='Listening: '+interim;
+      if(finalTranscript.trim()){
+        const text=finalTranscript.trim();
+        target.value=append?(target.value.trim()?target.value.trim()+' ':'')+text:text;
+        target.dispatchEvent(new Event('input',{bubbles:true}));
+        status.textContent=recognition.lang==='sw-KE'?'Sauti imeandikwa. Tafadhali hakiki maandishi.':'Voice text added. Please review before sending.';
+      }
     };
-    recognition.onerror=event=>{voiceStatus.textContent=event.error==='not-allowed'?'Microphone permission was denied. You can type instead.':'Voice typing could not complete. Try again or use your phone keyboard microphone.'};
-    recognition.onend=()=>{voiceButton.disabled=false};
-    try{recognition.start()}catch(error){voiceButton.disabled=false;voiceStatus.textContent='Could not start the microphone. Please try again or type instead.'}
+    recognition.onerror=event=>{
+      const msg=event.error==='not-allowed'?'Microphone permission denied. Allow microphone access or type instead. / Ruhusu maikrofoni au andika.':
+      event.error==='language-not-supported'?'This browser does not support that voice language. Try the other language or your keyboard microphone. / Lugha hii haijawezeshwa. Jaribu lugha nyingine.':
+      'Voice input could not finish. Try again or use your phone keyboard microphone. / Jaribu tena au tumia maikrofoni ya kibodi.';
+      status.textContent=msg;
+    };
+    recognition.onend=()=>{button.disabled=false;if(!finalTranscript.trim()&&!status.textContent.includes('denied')&&!status.textContent.includes('support'))status.textContent='No clear speech received. Try again or type. / Hakuna sauti iliyoeleweka; jaribu tena au andika.'};
+    try{recognition.start()}catch(error){button.disabled=false;status.textContent='Could not start microphone. Try again or type. / Haikuweza kuwasha maikrofoni.'}
   });
 }
+startMkulimaVoice({buttonId:'voiceInputBtn',statusId:'voiceInputStatus',targetId:'symptoms',languageId:'voiceLanguageDoctor',append:true});
+startMkulimaVoice({buttonId:'assistantVoiceBtn',statusId:'assistantVoiceStatus',targetId:'chatInput',languageId:'voiceLanguageAssistant',append:false});
 $('doctorForm').addEventListener('submit',e=>{e.preventDefault();let subject=$('subject').value,what=$('cropType').value||subject.toLowerCase(),sym=$('symptoms').value,dur=$('duration').value;let file=$('photo').files[0];if(file&&(!file.type||!file.type.startsWith('image/'))){toast('Please select a valid image file.');return}if(file&&file.size>8*1024*1024){toast('Photo is larger than 8 MB. Choose a smaller photo to save mobile data.');return}let animal=/cow|calf|poultry|pig|goat|sheep|animal/i.test(subject);let urgent=animal?' <p class="notice danger"><b>Urgent:</b> Trouble breathing, collapse or inability to stand, severe bleeding, suspected poisoning, sudden deaths, or a rapidly spreading illness needs prompt veterinary help. Keep potentially sick animals separated when safe and avoid unprescribed medicines.</p>':'';let msg=`<strong>Assessment prepared — ${esc(what)}</strong><p>Type: ${esc(subject)} · Duration: ${esc(dur)}</p><p><b>Your report:</b> ${esc(sym)}</p><p>${file?'A photo was selected ('+(file.size/1024/1024).toFixed(1)+' MB), but image analysis is not connected in this prototype. The image has not been diagnosed.':'No photo attached.'}</p><p><b>Next step:</b> Record when it started, how many plants/animals are affected, recent weather/feed/input changes, and any other symptoms. A qualified local professional may need to examine the crop/animal.</p>${urgent}<p style="font-size:12px;color:#765222">This is not a diagnosis and no disease has been confirmed.</p>`;$('doctorResult').innerHTML=msg;$('doctorResult').classList.remove('hidden')});
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function money(n){return 'KSh '+Number(n||0).toLocaleString('en-KE',{maximumFractionDigits:2})}
