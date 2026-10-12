@@ -41,6 +41,11 @@ After a successful M-Pesa payment is confirmed by the server and `finalize_mkuli
 
 An SMS receipt/notification is not currently sent by MKULIMA: that requires a separately configured SMS provider and credentials. The account's on-page activation is the current immediate confirmation path. The button is a navigation convenience, not proof that every static dashboard feature is access-controlled; enforce server-side entitlements for premium-only backend operations before claiming the whole site is paywalled.
 
+## Premium-gated cloud farm records API
+A first server-side premium service is available at `/.netlify/functions/farm-records`. It accepts authenticated requests only, calls `requireActiveAccess(event)` before database access, and scopes every query to the authenticated user's Supabase ID. `GET` lists up to 100 of that account's records; `POST` creates a `farm_note`, `crop_record`, `livestock_record`, `expense`, `sale`, or `inventory` record. Titles are limited to 120 characters and each JSON data object is limited to 32 KB. The SQL table has row-level security enabled and no client access grants; only the server-side service role can access it.
+
+Before using this endpoint, re-run the complete updated `supabase/mkulima-subscriptions.sql` in Supabase SQL Editor so the `mkulima_farm_records` table exists. This API is a secure backend building block; the existing browser-only farm pages do not automatically sync to it until their UI is integrated with this endpoint. Do not store highly sensitive personal information in farm records.
+
 ## Current billing rules
 - Weekly: KSh 300 for 7 days.
 - Monthly: KSh 1,050 for 30 days.
