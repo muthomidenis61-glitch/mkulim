@@ -381,3 +381,27 @@ jobs:
           print("PASS: subscription endpoints, RLS schema, payment verification and account UI.")
           PY
           node --check /tmp/mkulima-subscription.js
+
+
+      - name: Validate animal health records tool
+        shell: bash
+        run: |
+          set -e
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          page = Path("animal-health-records.html").read_text(encoding="utf-8")
+          required = ["MKULIMA", "AVENQOR HOLDINGS LTD", "Animal Health & Treatment Records", "withdrawalDate", "nextDate", "localStorage", "Export CSV", "Download JSON backup", "Restore backup", "veterinary professional"]
+          missing = [item for item in required if item.lower() not in page.lower()]
+          if missing:
+            raise SystemExit("FAIL: animal health records missing: " + ", ".join(missing))
+          scripts = re.findall(r"<script[^>]*>(.*?)</script>", page, flags=re.I | re.S)
+          if not scripts:
+            raise SystemExit("FAIL: animal health records has no script")
+          Path("/tmp/mkulima-animal-health.js").write_text("\\n;\\n".join(scripts), encoding="utf-8")
+          dashboard = Path("index.html").read_text(encoding="utf-8")
+          if "/animal-health-records.html" not in dashboard:
+            raise SystemExit("FAIL: animal health records dashboard link missing")
+          print("PASS: animal health record form, local storage, withdrawal reminders, backup/restore and dashboard link.")
+          PY
+          node --check /tmp/mkulima-animal-health.js
