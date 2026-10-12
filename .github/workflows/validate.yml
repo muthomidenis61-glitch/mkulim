@@ -260,3 +260,25 @@ jobs:
           print("PASS: calculator labels, local-save controls and dashboard link.")
           PY
           node --check /tmp/mkulima-farm-business.js
+
+      - name: Validate farm inventory manager
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          page = Path("farm-inventory.html").read_text(encoding="utf-8")
+          required = ["Farm Inventory & Stock", "AVENQOR HOLDINGS LTD", "low-stock", "localStorage", "Export CSV", "Download JSON backup", "Restore JSON backup", "does not sync to the cloud"]
+          missing = [x for x in required if x.lower() not in page.lower()]
+          if missing:
+            raise SystemExit("FAIL: farm inventory missing: " + ", ".join(missing))
+          scripts = re.findall(r"<script(?:\\s[^>]*)?>(.*?)</script>", page, flags=re.I | re.S)
+          if len(scripts) != 1:
+            raise SystemExit("FAIL: expected one farm inventory script")
+          Path("/tmp/mkulima-inventory.js").write_text("\\n;\\n".join(scripts), encoding="utf-8")
+          dashboard = Path("index.html").read_text(encoding="utf-8")
+          if 'href="/farm-inventory.html"' not in dashboard and "location.href='/farm-inventory.html'" not in dashboard:
+            raise SystemExit("FAIL: dashboard missing farm inventory link")
+          print("PASS: farm inventory controls, local-only storage notice, and dashboard link.")
+          PY
+          node --check /tmp/mkulima-inventory.js
