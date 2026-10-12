@@ -20,6 +20,8 @@ In the MKULIMA Netlify site's environment variables, set these for Functions (Pr
 - `DARAJA_SHORTCODE` (must be the shortcode enabled for STK Push on the Daraja application)
 - `DARAJA_PASSKEY` (secret supplied for that shortcode)
 - `DARAJA_CALLBACK_URL=https://mkulim.netlify.app/.netlify/functions/mpesa-callback`
+- `OPENAI_API_KEY` (secret; required for the real text/photo AI farm assistant)
+- `OPENAI_MODEL=gpt-6-astra` (optional; choose a vision-capable model available to your OpenAI project)
 
 Never paste these secrets into ChatGPT, source code, GitHub issues, or a public repository. Add/update them only in Netlify's protected environment settings. The listed PayBill number on the existing instructions page is not automatically guaranteed to be an STK-enabled shortcode: confirm with Safaricom/Daraja that the business shortcode and passkey belong to the legitimate payee.
 
@@ -44,7 +46,11 @@ An SMS receipt/notification is not currently sent by MKULIMA: that requires a se
 ## Premium-gated cloud farm records API
 A first server-side premium service is available at `/.netlify/functions/farm-records`. It accepts authenticated requests only, calls `requireActiveAccess(event)` before database access, and scopes every query to the authenticated user's Supabase ID. `GET` lists up to 100 of that account's records; `POST` creates a `farm_note`, `crop_record`, `livestock_record`, `expense`, `sale`, or `inventory` record. Titles are limited to 120 characters and each JSON data object is limited to 32 KB. The SQL table has row-level security enabled and no client access grants; only the server-side service role can access it.
 
-Before using this endpoint, re-run the complete updated `supabase/mkulima-subscriptions.sql` in Supabase SQL Editor so the `mkulima_farm_records` table exists. The mobile UI integration is available at `/farmbook-cloud.html`. It reads the existing same-tab signed-in session, uploads local FarmBook records that are not already present in the cloud, and merges cloud records back into local storage without deleting existing local entries. Cloud sync requires an active paid subscription or Discovery Pass. The browser UI cannot override the server-side entitlement check. The API and UI still require an end-to-end test against your configured Netlify/Supabase deployment. Do not store highly sensitive personal information in farm records.
+Before using this endpoint, re-run the complete updated `supabase/mkulima-subscriptions.sql` in Supabase SQL Editor so the `mkulima_farm_records` table exists. The mobile UI integration is available at `/farmbook-cloud.html`. It reads the existing same-tab signed-in session, uploads local FarmBook records that are not already present in the cloud, and merges cloud records back into local storage without deleting existing local entries. Cloud sync requires an active paid subscription or Discovery Pass. The browser UI cannot override the server-side entitlement check. The API and UI still require an end-to-end test against your configured Netlify/Supabase deployment. Records now use a per-account unique client record ID for idempotent cloud backup; rerun the updated SQL to create the column and unique index. Do not store highly sensitive personal information in farm records.
+
+## Real AI farm assistant (text and photo)
+
+`/.netlify/functions/farm-ai` calls the OpenAI Responses API from the server. It requires a signed-in user with an active paid subscription or Discovery Pass, and the `OPENAI_API_KEY` server environment variable. The key must never be placed in HTML, browser JavaScript, GitHub, or a message. The assistant accepts a text question and optional compressed JPEG photo; it is designed to explain uncertainty, avoid prescribing medicines or chemical dosages, and escalate urgent animal-health signs. This is AI-generated first guidance, not a diagnosis. Set the key in protected Netlify environment variables, redeploy, and test with a controlled account before announcing it as available. Provider access, model availability, and usage charges depend on the OpenAI project.
 
 ## Current billing rules
 - Weekly: KSh 300 for 7 days.
