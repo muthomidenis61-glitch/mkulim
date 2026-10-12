@@ -310,3 +310,25 @@ jobs:
           print("PASS: discovery preview disclosure, security centre, and Netlify security headers.")
           PY
           node --check /tmp/mkulima-trial.js
+
+      - name: Validate Kenya crop calendar
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          page = Path("crop-calendar.html").read_text(encoding="utf-8")
+          required = ["Kenya crop calendar", "AVENQOR HOLDINGS LTD", "function build()", "localStorage", "Export checklist CSV", "KALRO", "KEPHIS", "maize", "beans", "avocado", "coffee"]
+          missing = [item for item in required if item.lower() not in page.lower()]
+          if missing:
+            raise SystemExit("FAIL: crop calendar missing: " + ", ".join(missing))
+          scripts = re.findall(r"<script[^>]*>(.*?)</script>", page, flags=re.I | re.S)
+          if not scripts:
+            raise SystemExit("FAIL: crop calendar has no script")
+          Path("/tmp/mkulima-crop-calendar.js").write_text("\\n;\\n".join(scripts), encoding="utf-8")
+          dashboard = Path("index.html").read_text(encoding="utf-8")
+          if "/crop-calendar.html" not in dashboard:
+            raise SystemExit("FAIL: crop calendar dashboard link missing")
+          print("PASS: crop calendar, local saving, export, Kenyan crop set, and dashboard link.")
+          PY
+          node --check /tmp/mkulima-crop-calendar.js
