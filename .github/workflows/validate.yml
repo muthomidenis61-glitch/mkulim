@@ -333,6 +333,51 @@ jobs:
           PY
           node --check /tmp/mkulima-crop-calendar.js
 
+      - name: Validate public SEO, social sharing and error page
+        shell: bash
+        run: |
+          set -e
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import xml.etree.ElementTree as ET
+          home = Path("index.html").read_text(encoding="utf-8")
+          required = [
+            'rel="canonical"',
+            'property="og:title"',
+            'property="og:description"',
+            'property="og:url"',
+            'property="og:image"',
+            'name="twitter:card"',
+            'name="twitter:title"',
+            'async function shareMkulima()',
+            'onclick="shareMkulima()"',
+            'AVENQOR HOLDINGS LTD',
+          ]
+          missing = [item for item in required if item.lower() not in home.lower()]
+          if missing:
+            raise SystemExit("FAIL: home page missing share/SEO feature: " + ", ".join(missing))
+          if not Path("mkulima-social.svg").is_file():
+            raise SystemExit("FAIL: social preview asset missing")
+          robots = Path("robots.txt").read_text(encoding="utf-8")
+          if "Sitemap: https://mkulim.netlify.app/sitemap.xml" not in robots:
+            raise SystemExit("FAIL: robots.txt must reference the sitemap")
+          sitemap = ET.parse("sitemap.xml").getroot()
+          ns = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+          urls = [node.text for node in sitemap.findall("sm:url/sm:loc", ns)]
+          if not urls or "https://mkulim.netlify.app/" not in urls:
+            raise SystemExit("FAIL: sitemap has no canonical home page")
+          for url in urls:
+            path = url.removeprefix("https://mkulim.netlify.app/") or "index.html"
+            if not Path(path).is_file():
+              raise SystemExit("FAIL: sitemap points to missing local file: " + path)
+          not_found = Path("404.html").read_text(encoding="utf-8")
+          for item in ["Page not found", "Back to MKULIMA", "AVENQOR HOLDINGS LTD", 'href="/farm-resource-centre.html"']:
+            if item.lower() not in not_found.lower():
+              raise SystemExit("FAIL: 404 page missing " + item)
+          print(f"PASS: social metadata, share control, social preview, robots.txt, {len(urls)} sitemap URLs and branded 404 page.")
+          PY
+
       - name: Validate secure subscription backend
         shell: bash
         run: |
