@@ -238,3 +238,25 @@ jobs:
           print("PASS: bilingual response content and spoken answer controls.")
           PY
           node --check /tmp/mkulima-index.js
+
+      - name: Validate mobile farm business calculator
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          page = Path("farm-business-calculator.html").read_text(encoding="utf-8")
+          required = ["AVENQOR HOLDINGS LTD", "breakEven", "Estimated sales revenue", "Total entered costs", "Estimated balance", "Save estimate on this phone", "not guaranteed profit"]
+          missing = [x for x in required if x.lower() not in page.lower()]
+          if missing:
+            raise SystemExit("FAIL: farm calculator missing: " + ", ".join(missing))
+          scripts = re.findall(r"<script(?:\\s[^>]*)?>(.*?)</script>", page, flags=re.I | re.S)
+          if len(scripts) != 1:
+            raise SystemExit("FAIL: expected one calculator script")
+          Path("/tmp/mkulima-farm-business.js").write_text("\\n;\\n".join(scripts), encoding="utf-8")
+          dashboard = Path("index.html").read_text(encoding="utf-8")
+          if 'href="/farm-business-calculator.html"' not in dashboard:
+            raise SystemExit("FAIL: dashboard missing farm calculator link")
+          print("PASS: calculator labels, local-save controls and dashboard link.")
+          PY
+          node --check /tmp/mkulima-farm-business.js
