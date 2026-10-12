@@ -362,12 +362,16 @@ jobs:
           for term in ["mkulima_trials", "mkulima_payments", "mkulima_subscriptions", "enable row level security", "revoke all"]:
             if term.lower() not in sql.lower():
               raise SystemExit("FAIL: subscription schema missing " + term)
+          status = Path("netlify/functions/subscription-status.mjs").read_text(encoding="utf-8")
+          for term in ["mkulima_payments", "payment: payments[0]"]:
+            if term not in status:
+              raise SystemExit("FAIL: payment status endpoint missing " + term)
           callback = Path("netlify/functions/mpesa-callback.mjs").read_text(encoding="utf-8")
           for term in ["querySafaricom", "MpesaReceiptNumber", "Number(meta.Amount)", "payment.phone", "status:\"paid\""]:
             if term not in callback:
               raise SystemExit("FAIL: payment verification missing " + term)
           page = Path("subscription.html").read_text(encoding="utf-8")
-          for term in ["auth-register", "auth-login", "subscription-trial", "subscription-status", "mpesa-stk-push", "AVENQOR HOLDINGS LTD", "Never enter your M-Pesa PIN"]:
+          for term in ["auth-register", "auth-login", "subscription-trial", "subscription-status", "mpesa-stk-push", "AVENQOR HOLDINGS LTD", "Never enter your M-Pesa PIN", "Latest payment", "paymentStatus", "Checking server confirmation automatically"]:
             if term.lower() not in page.lower():
               raise SystemExit("FAIL: subscription centre missing " + term)
           scripts = re.findall(r"<script[^>]*>(.*?)</script>", page, flags=re.I | re.S)
