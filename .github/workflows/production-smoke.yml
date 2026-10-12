@@ -26,7 +26,7 @@ jobs:
           checks = [
             ("/", ["MKULIMA", "AVENQOR HOLDINGS LTD"]),
             ("/subscription.html", ["MKULIMA"]),
-            ("/voice-assistant.html", ["Ask real AI", "farmPhoto"]),
+            ("/voice-assistant.html", ["Talk to your farm assistant.", "farmPhoto"]),
             ("/robots.txt", ["Sitemap:"]),
             ("/sitemap.xml", ["<urlset"]),
             ("/.netlify/functions/farm-ai", None),
