@@ -282,3 +282,31 @@ jobs:
           print("PASS: farm inventory controls, local-only storage notice, and dashboard link.")
           PY
           node --check /tmp/mkulima-inventory.js
+
+      - name: Validate 72-hour preview, security centre and hosting headers
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          app = Path("index.html").read_text(encoding="utf-8")
+          required_app = ["MKULIMA DISCOVERY PASS", "72 hours", "function startTrial()", "72*60*60*1000", "stores its timer in this browser", "not identity-verified or tamper-proof", "security.html"]
+          missing = [x for x in required_app if x.lower() not in app.lower()]
+          if missing:
+            raise SystemExit("FAIL: trial or security link missing: " + ", ".join(missing))
+          scripts = re.findall("<script[^>]*>(.*?)</script>", app, flags=re.I | re.S)
+          if not scripts:
+            raise SystemExit("FAIL: no app scripts found")
+          Path("/tmp/mkulima-trial.js").write_text("\n;\n".join(scripts), encoding="utf-8")
+          security = Path("security.html").read_text(encoding="utf-8")
+          required_security = ["Security & Privacy Centre", "Content Security Policy", "multi-factor authentication", "not yet implemented", "AVENQOR HOLDINGS LTD"]
+          missing = [x for x in required_security if x.lower() not in security.lower()]
+          if missing:
+            raise SystemExit("FAIL: security centre missing: " + ", ".join(missing))
+          headers = Path("_headers").read_text(encoding="utf-8")
+          for header in ["Content-Security-Policy:", "X-Content-Type-Options: nosniff", "X-Frame-Options: DENY", "Referrer-Policy:", "Permissions-Policy:", "Strict-Transport-Security:"]:
+            if header not in headers:
+              raise SystemExit("FAIL: missing security header " + header)
+          print("PASS: discovery preview disclosure, security centre, and Netlify security headers.")
+          PY
+          node --check /tmp/mkulima-trial.js
