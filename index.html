@@ -218,5 +218,10 @@ $('profileForm').addEventListener('submit',e=>{e.preventDefault();profile={name:
 function loadProfile(){if(profile.name)$('profileName').value=profile.name;if(profile.county)$('profileCounty').value=profile.county;if(profile.farm)$('profileFarm').value=profile.farm;if(profile.size)$('profileSize').value=profile.size;if(profile.goal)$('profileGoal').value=profile.goal}
 $('recordSearch').addEventListener('input',renderRecords);$('recordFilter').addEventListener('change',renderRecords);$('backupFile').addEventListener('change',e=>restoreBackup(e.target.files[0]));$('recordDate').value=new Date().toISOString().slice(0,10);$('reminderDate').value=new Date().toISOString().slice(0,10);$('year').textContent=new Date().getFullYear();loadProfile();updateStats();renderRecords();renderReminders();calc();
 </script>
+<script>
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js').catch(() => {}));
+}
+</script>
 </body>
 </html>
