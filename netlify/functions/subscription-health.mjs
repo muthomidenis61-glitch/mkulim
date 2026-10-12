@@ -15,7 +15,9 @@ export default async event => {
     const checks = [];
     const missing = requiredEnv.filter(name => !process.env[name]);
     checks.push(safeCheck("Protected environment settings", missing.length === 0,
-      missing.length ? "Missing settings: " + missing.join(", ") : "All required server variables are present; secret values are not displayed."));
+      missing.length ? "Missing settings: " + missing.join(", ") : "All required subscription server variables are present; secret values are not displayed."));
+    checks.push(safeCheck("AI farm assistant provider", Boolean(process.env.OPENAI_API_KEY),
+      process.env.OPENAI_API_KEY ? "AI provider key is present; this check does not send a billable AI request." : "Missing OPENAI_API_KEY. Add it to protected Netlify environment variables to enable real AI text/photo guidance."));
     try {
       await supabaseAuth("/auth/v1/settings");
       checks.push(safeCheck("Supabase Auth", true, "Supabase Auth responded successfully."));
