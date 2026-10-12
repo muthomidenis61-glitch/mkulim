@@ -155,7 +155,7 @@ jobs:
           scripts = re.findall(r"<script(?:\\s[^>]*)?>(.*?)</script>", page, flags=re.I | re.S)
           if len(scripts) != 1:
               raise SystemExit("FAIL: Expected one inline script in farm planner")
-          Path("/tmp/mkulima-farm-planner.js").write_text("\\n;\\n".join(scripts), encoding="utf-8")
+          Path("/tmp/mkulima-farm-planner.js").write_text("\n;\n".join(scripts), encoding="utf-8")
           print("PASS: Farm planner records, tasks, ledger, backup, privacy, dashboard link and script extraction.")
           PY
           node --check /tmp/mkulima-farm-planner.js
