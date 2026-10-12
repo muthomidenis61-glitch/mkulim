@@ -438,10 +438,10 @@ jobs:
           for term in ["requireUser(event)", "mkulima_trials", "mkulima_payments", "mkulima_subscriptions", "mkulima_farm_records", "rpc/finalize_mkulima_payment", "DARAJA_CONSUMER_KEY", "does not initiate a charge"]:
             if term.lower() not in health.lower():
               raise SystemExit("FAIL: backend diagnostics missing " + term)
-          scripts = re.findall(r"<script[^>]*>(.*?)</script\\s*>", page, flags=re.I | re.S)
+          scripts = re.findall(r"<script[^>]*>(.*?)</script\s*>", page, flags=re.I | re.S)
           if not scripts:
             raise SystemExit("FAIL: subscription page has no script to validate")
-          Path("/tmp/mkulima-subscription-diagnostics.js").write_text("\\n;\\n".join(scripts), encoding="utf-8")
+          Path("/tmp/mkulima-subscription-diagnostics.js").write_text("\n;\n".join(scripts), encoding="utf-8")
           print("PASS: authenticated backend diagnostics, Supabase schema checks, payment RPC probe and non-charging Daraja OAuth check.")
           PY
           node --check /tmp/mkulima-subscription-diagnostics.js
