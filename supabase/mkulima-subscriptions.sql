@@ -64,7 +64,7 @@ create table if not exists public.mkulima_farm_records (
 );
 alter table public.mkulima_farm_records add column if not exists client_record_id text;
 create unique index if not exists mkulima_farm_records_client_id_unique
-  on public.mkulima_farm_records (user_id, client_record_id) where client_record_id is not null;
+  on public.mkulima_farm_records (user_id, client_record_id);
 create index if not exists mkulima_farm_records_user_updated_idx
   on public.mkulima_farm_records (user_id, updated_at desc);
 alter table public.mkulima_farm_records enable row level security;
