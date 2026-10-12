@@ -37,9 +37,19 @@ export default async event => {
       await adminRest("mkulima_payments", {method:"PATCH",query:"?checkout_request_id=eq."+encodeURIComponent(payment.checkout_request_id)+"&status=eq.pending",body:{status:"review",result_description:"Safaricom details require reconciliation",updated_at:new Date().toISOString()},prefer:"return=minimal"});
       return { statusCode:200,headers:{"Content-Type":"application/json"},body:JSON.stringify({ResultCode:0,ResultDesc:"Payment requires reconciliation"}) };
     }
-    const now = new Date(), days = payment.plan === "Weekly" ? 7 : 30, end = new Date(now.getTime()+days*86400000);
-    await adminRest("mkulima_payments", {method:"PATCH",query:"?checkout_request_id=eq."+encodeURIComponent(payment.checkout_request_id)+"&status=eq.pending",body:{status:"paid",mpesa_receipt:String(meta.MpesaReceiptNumber),result_description:"Safaricom transaction verified",paid_at:now.toISOString(),updated_at:now.toISOString()},prefer:"return=minimal"});
-    await adminRest("mkulima_subscriptions", {method:"POST",query:"?on_conflict=user_id",body:{user_id:payment.user_id,plan:payment.plan,status:"active",starts_at:now.toISOString(),ends_at:end.toISOString(),mpesa_receipt:String(meta.MpesaReceiptNumber),updated_at:now.toISOString()},prefer:"resolution=merge-duplicates,return=minimal"});
+    // The SQL RPC finalises the payment and subscription atomically. It locks
+    // the payment row, prevents duplicate callback grants, and preserves time
+    // remaining when a customer renews early. It sets status:"paid" only after
+    // the verified receipt has passed amount, phone and Safaricom query checks.
+    await adminRest("rpc/finalize_mkulima_payment", {
+      method: "POST",
+      body: {
+        p_checkout_request_id: payment.checkout_request_id,
+        p_receipt: String(meta.MpesaReceiptNumber),
+        p_paid_at: new Date().toISOString()
+      },
+      prefer: "return=representation"
+    });
     return {statusCode:200,headers:{"Content-Type":"application/json"},body:JSON.stringify({ResultCode:0,ResultDesc:"Verified and processed"})};
   } catch (e) {
     // Never acknowledge a failed database write as a successful subscription.
