@@ -1,0 +1,64 @@
+name: Validate MKULIMA
+on:
+  push:
+    branches:
+      - main
+      - codex/mkulima-mobile-improvements
+  pull_request:
+    branches:
+      - main
+permissions:
+  contents: read
+jobs:
+  validate:
+    name: Check app code, PWA files, and safety notices
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate manifest and extract inline JavaScript
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          import re
+          html = Path("index.html").read_text(encoding="utf-8")
+          scripts = re.findall(r"<script(?:\s[^>]*)?>(.*?)</script>", html, flags=re.I | re.S)
+          if not scripts:
+              raise SystemExit("FAIL: No inline JavaScript found in index.html")
+          Path("/tmp/mkulima-inline.js").write_text("\n;\n".join(scripts), encoding="utf-8")
+          required = [
+              "MKULIMA™",
+              "AVENQOR HOLDINGS LTD",
+              "restoreBackup",
+              "image analysis is not connected",
+              "todayLocalDate",
+              "navigator.serviceWorker.register",
+              'rel="manifest"',
+              "voiceInputBtn",
+              "window.webkitSpeechRecognition",
+              "Trusted Kenyan farming resources",
+              "https://keep.kalro.org/",
+              "https://www.kephis.go.ke/",
+              "https://dvs.ecitizen.go.ke/",
+              "Could not save this change on this device"
+          ]
+          missing = [item for item in required if item not in html]
+          if missing:
+              raise SystemExit("FAIL: Missing required feature/safety text: " + ", ".join(missing))
+          manifest = json.loads(Path("manifest.webmanifest").read_text(encoding="utf-8"))
+          if manifest.get("name", "").find("MKULIMA") < 0 or manifest.get("start_url") != "/":
+              raise SystemExit("FAIL: App manifest name or start URL is invalid")
+          if not Path("mkulima-icon.svg").is_file() or not Path("service-worker.js").is_file():
+              raise SystemExit("FAIL: App icon or service worker is missing")
+          print(f"PASS: {len(scripts)} inline script(s), valid manifest, app icon, service worker, and required safeguards.")
+          PY
+      - name: Validate inline JavaScript syntax
+        run: node --check /tmp/mkulima-inline.js
+      - name: Validate service worker JavaScript syntax
+        run: node --check service-worker.js
