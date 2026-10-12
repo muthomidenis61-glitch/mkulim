@@ -290,7 +290,7 @@ jobs:
           from pathlib import Path
           import re
           app = Path("index.html").read_text(encoding="utf-8")
-          required_app = ["MKULIMA DISCOVERY PASS", "72 hours", "function startTrial()", "72*60*60*1000", "stores its timer in this browser", "not identity-verified or tamper-proof", "security.html"]
+          required_app = ["MKULIMA DISCOVERY PASS", "72 hours", "function startTrial()", "subscription.html", "server-timed", "security.html"]
           missing = [x for x in required_app if x.lower() not in app.lower()]
           if missing:
             raise SystemExit("FAIL: trial or security link missing: " + ", ".join(missing))
@@ -332,3 +332,48 @@ jobs:
           print("PASS: crop calendar, local saving, export, Kenyan crop set, and dashboard link.")
           PY
           node --check /tmp/mkulima-crop-calendar.js
+
+      - name: Validate secure subscription backend
+        shell: bash
+        run: |
+          set -e
+          for file in netlify/functions/*.mjs; do
+            node --check "$file"
+          done
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          expected = [
+            "netlify/functions/auth-register.mjs",
+            "netlify/functions/auth-login.mjs",
+            "netlify/functions/subscription-trial.mjs",
+            "netlify/functions/subscription-status.mjs",
+            "netlify/functions/mpesa-stk-push.mjs",
+            "netlify/functions/mpesa-callback.mjs",
+            "netlify/functions/_shared.mjs",
+            "supabase/mkulima-subscriptions.sql",
+            "SUBSCRIPTION_SETUP.md",
+            "subscription.html",
+          ]
+          missing = [p for p in expected if not Path(p).is_file()]
+          if missing:
+            raise SystemExit("FAIL: missing subscription components: " + ", ".join(missing))
+          sql = Path("supabase/mkulima-subscriptions.sql").read_text(encoding="utf-8")
+          for term in ["mkulima_trials", "mkulima_payments", "mkulima_subscriptions", "enable row level security", "revoke all"]:
+            if term.lower() not in sql.lower():
+              raise SystemExit("FAIL: subscription schema missing " + term)
+          callback = Path("netlify/functions/mpesa-callback.mjs").read_text(encoding="utf-8")
+          for term in ["querySafaricom", "MpesaReceiptNumber", "Number(meta.Amount)", "payment.phone", "status:\"paid\""]:
+            if term not in callback:
+              raise SystemExit("FAIL: payment verification missing " + term)
+          page = Path("subscription.html").read_text(encoding="utf-8")
+          for term in ["auth-register", "auth-login", "subscription-trial", "subscription-status", "mpesa-stk-push", "AVENQOR HOLDINGS LTD", "Never enter your M-Pesa PIN"]:
+            if term.lower() not in page.lower():
+              raise SystemExit("FAIL: subscription centre missing " + term)
+          scripts = re.findall(r"<script[^>]*>(.*?)</script>", page, flags=re.I | re.S)
+          if not scripts:
+            raise SystemExit("FAIL: subscription centre has no client script")
+          Path("/tmp/mkulima-subscription.js").write_text("\\n;\\n".join(scripts), encoding="utf-8")
+          print("PASS: subscription endpoints, RLS schema, payment verification and account UI.")
+          PY
+          node --check /tmp/mkulima-subscription.js
