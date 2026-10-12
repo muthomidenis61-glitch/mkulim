@@ -219,3 +219,22 @@ jobs:
           print("PASS: bilingual voice, visual guide, payment contact and safety notes.")
           PY
           node --check /tmp/mkulima-voice.js
+
+      - name: Validate main dashboard bilingual voice responses
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          page = Path("index.html").read_text(encoding="utf-8")
+          required = ["speakLastAnswer", "stopAnswerSpeech", "SpeechSynthesisUtterance", "Inasoma jibu kwa sauti", "TAHADHARI YA DHARURA", "function assistantReply(q)"]
+          missing = [x for x in required if x.lower() not in page.lower()]
+          if missing:
+            raise SystemExit("FAIL: missing main voice feature(s): " + ", ".join(missing))
+          scripts = re.findall(r"<script(?:\s[^>]*)?>(.*?)</script>", page, flags=re.I | re.S)
+          if not scripts:
+            raise SystemExit("FAIL: no inline scripts found")
+          Path("/tmp/mkulima-index.js").write_text("\n;\n".join(scripts), encoding="utf-8")
+          print("PASS: bilingual response content and spoken answer controls.")
+          PY
+          node --check /tmp/mkulima-index.js
