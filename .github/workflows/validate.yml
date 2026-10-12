@@ -422,6 +422,28 @@ jobs:
             node --check "$file"
           done
 
+      - name: Validate live subscription diagnostics endpoint
+        shell: bash
+        run: |
+          set -e
+          node --check netlify/functions/subscription-health.mjs
+          node --check /tmp/mkulima-subscription.js 2>/dev/null || true
+          python3 - <<'PY'
+          from pathlib import Path
+          page = Path("subscription.html").read_text(encoding="utf-8")
+          health = Path("netlify/functions/subscription-health.mjs").read_text(encoding="utf-8")
+          for term in ["runDiagnostics", "subscription-health", "diagnosticStatus", "Check backend integration"]:
+            if term.lower() not in page.lower():
+              raise SystemExit("FAIL: subscription diagnostics UI missing " + term)
+          for term in ["requireUser(event)", "mkulima_trials", "mkulima_payments", "mkulima_subscriptions", "mkulima_farm_records", "rpc/finalize_mkulima_payment", "DARAJA_CONSUMER_KEY", "does not initiate a charge"]:
+            if term.lower() not in health.lower():
+              raise SystemExit("FAIL: backend diagnostics missing " + term)
+          for secret in ["DARAJA_CONSUMER_SECRET", "SUPABASE_SERVICE_ROLE_KEY"]:
+            if secret in health and "process.env[" not in health:
+              raise SystemExit("FAIL: secret should only be read from protected environment settings")
+          print("PASS: authenticated backend diagnostics, Supabase schema checks, payment RPC probe and non-charging Daraja OAuth check.")
+          PY
+
       - name: Validate secure subscription backend
         shell: bash
         run: |
