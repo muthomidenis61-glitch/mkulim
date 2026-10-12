@@ -290,7 +290,7 @@ jobs:
           from pathlib import Path
           import re
           app = Path("index.html").read_text(encoding="utf-8")
-          required_app = ["MKULIMA DISCOVERY PASS", "72 hours", "function startTrial()", "72*60*60*1000", "stores its timer in this browser", "not identity-verified or tamper-proof", "security.html"]
+          required_app = ["MKULIMA DISCOVERY PASS", "72 hours", "function startTrial()", "subscription.html", "server-timed", "security.html"]
           missing = [x for x in required_app if x.lower() not in app.lower()]
           if missing:
             raise SystemExit("FAIL: trial or security link missing: " + ", ".join(missing))
