@@ -371,7 +371,7 @@ jobs:
             if term not in callback:
               raise SystemExit("FAIL: payment verification missing " + term)
           page = Path("subscription.html").read_text(encoding="utf-8")
-          for term in ["auth-register", "auth-login", "subscription-trial", "subscription-status", "mpesa-stk-push", "AVENQOR HOLDINGS LTD", "Never enter your M-Pesa PIN", "Latest payment", "paymentStatus", "Checking server confirmation automatically", "Refresh subscription status", "current.payment?.status==='pending'"]:
+          for term in ["auth-register", "auth-login", "subscription-trial", "subscription-status", "mpesa-stk-push", "AVENQOR HOLDINGS LTD", "Never enter your M-Pesa PIN", "Latest payment", "paymentStatus", "Checking server confirmation automatically", "Refresh subscription status", "accessTools", "Subscription active — open farm tools", "current.payment?.status==='pending'"]:
             if term.lower() not in page.lower():
               raise SystemExit("FAIL: subscription centre missing " + term)
           scripts = re.findall(r"<script[^>]*>(.*?)</script>", page, flags=re.I | re.S)
