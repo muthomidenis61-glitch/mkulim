@@ -21,7 +21,7 @@ In the MKULIMA Netlify site's environment variables, set these for Functions (Pr
 - `DARAJA_PASSKEY` (secret supplied for that shortcode)
 - `DARAJA_CALLBACK_URL=https://mkulim.netlify.app/.netlify/functions/mpesa-callback`
 - `OPENAI_API_KEY` (secret; required for the real text/photo AI farm assistant)
-- `OPENAI_MODEL=gpt-6-astra` (optional; choose a vision-capable model available to your OpenAI project)
+- `OPENAI_MODEL=gpt-4.1-mini` (optional; choose a vision-capable model available to your OpenAI project)
 
 Never paste these secrets into ChatGPT, source code, GitHub issues, or a public repository. Add/update them only in Netlify's protected environment settings. The listed PayBill number on the existing instructions page is not automatically guaranteed to be an STK-enabled shortcode: confirm with Safaricom/Daraja that the business shortcode and passkey belong to the legitimate payee.
 
