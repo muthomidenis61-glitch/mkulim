@@ -585,3 +585,43 @@ jobs:
           print("PASS: Veterinary Intelligence page, safety disclaimers, plan labels, and dashboard link.")
           PY
           node --check /tmp/mkulima-veterinary.js
+
+      - name: Validate authenticated AI farm assistant and idempotent cloud sync
+        shell: bash
+        run: |
+          set -e
+          node --check netlify/functions/farm-ai.mjs
+          node --check netlify/functions/farm-records.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          ai = Path("netlify/functions/farm-ai.mjs").read_text(encoding="utf-8")
+          records = Path("netlify/functions/farm-records.mjs").read_text(encoding="utf-8")
+          sql = Path("supabase/mkulima-subscriptions.sql").read_text(encoding="utf-8")
+          ui = Path("voice-assistant.html").read_text(encoding="utf-8")
+          sync = Path("farmbook-cloud.html").read_text(encoding="utf-8")
+          setup = Path("SUBSCRIPTION_SETUP.md").read_text(encoding="utf-8")
+          checks = {
+            "AI authentication and entitlement": "requireActiveAccess(event)" in ai,
+            "AI provider key remains server-side": 'env("OPENAI_API_KEY")' in ai and "OPENAI_API_KEY" in setup,
+            "AI image input supported": 'type: "input_image"' in ai and 'id="farmPhoto"' in ui,
+            "AI safety guardrails": "Never prescribe antibiotics" in ai and "not a diagnosis" in ai,
+            "Cloud sync stable client ID": "clientRecordId" in records and "on_conflict=user_id,client_record_id" in records,
+            "Database unique client ID": "mkulima_farm_records_client_id_unique" in sql,
+            "UI reads persisted client ID": "r.client_record_id" in sync,
+            "Avenqor brand visible on AI page": "AVENQOR HOLDINGS LTD" in ui,
+          }
+          failed = [name for name, ok in checks.items() if not ok]
+          if failed:
+            raise SystemExit("FAIL: " + ", ".join(failed))
+          print("PASS: authenticated AI text/photo endpoint, safety guardrails, and idempotent cloud sync contract.")
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          page = Path("voice-assistant.html").read_text(encoding="utf-8")
+          scripts = re.findall(r"<script(?:\s[^>]*)?>(.*?)</script>", page, flags=re.I | re.S)
+          if len(scripts) != 1:
+            raise SystemExit("FAIL: expected one voice assistant script")
+          Path("/tmp/mkulima-voice-ai.js").write_text("\n;\n".join(scripts), encoding="utf-8")
+          PY
+          node --check /tmp/mkulima-voice-ai.js
