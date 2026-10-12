@@ -197,7 +197,7 @@ jobs:
           from pathlib import Path
           import re
           checks = {
-            "voice-assistant.html": ["Kiswahili", "English", "SpeechRecognition", "SpeechSynthesisUtterance", "Read answer aloud", "rule-based", "DENIS MUTHOMI"],
+            "voice-assistant.html": ["Kiswahili", "English", "SpeechRecognition", "SpeechSynthesisUtterance", "Read answer aloud", "askAI", "farmPhoto", "DENIS MUTHOMI"],
             "farm-visual-guide.html": ["MAIZE", "CHICKEN", "COW", "not photographs", "mastitis", "fall armyworm"],
           }
           for filename, terms in checks.items():
