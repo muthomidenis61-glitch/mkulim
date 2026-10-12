@@ -268,7 +268,30 @@ function speakLatestAnswer(){
 $('speakLastAnswer').addEventListener('click',speakLatestAnswer);
 $('stopAnswerSpeech').addEventListener('click',()=>{if('speechSynthesis'in window)speechSynthesis.cancel();$('answerSpeechStatus').textContent='Stopped. / Imesimamishwa.'});
 function addMessage(text,who){let el=document.createElement('div');el.className='bubble '+who;el.textContent=text;$('messages').appendChild(el);$('messages').scrollTop=$('messages').scrollHeight}
-function ask(q){if(!q.trim())return;addMessage(q,'user');setTimeout(()=>addMessage(assistantReply(q),'bot'),150)}
+async function ask(q){
+ q=String(q||'').trim();if(!q)return;
+ addMessage(q,'user');
+ const input=$('chatInput');if(input)input.value='';
+ const loading=document.createElement('div');loading.className='bubble bot';loading.textContent='Thinking… / Nafikiria…';loading.setAttribute('aria-live','polite');$('messages').appendChild(loading);$('messages').scrollTop=$('messages').scrollHeight;
+ try{
+   let session=null;try{session=JSON.parse(sessionStorage.getItem('mkulima_secure_session_v1')||'null')}catch{}
+   if(session&&session.access_token){
+     const language=$('voiceLanguageAssistant').value==='sw-KE'?'sw':'en';
+     const response=await fetch('/.netlify/functions/farm-ai',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify({question:q,language})});
+     const data=await response.json().catch(()=>({}));
+     if(response.ok&&data.answer){loading.textContent=data.answer;return}
+     if(response.status===401||response.status===403){loading.textContent=assistantReply(q)+'\n\nFor a personalised AI answer, sign in and check that your Discovery Pass or subscription is active. / Kwa jibu la AI, ingia na uhakikishe Discovery Pass au usajili wako unatumika.';return}
+     if(response.status===503){loading.textContent=assistantReply(q)+'\n\nAI service setup is incomplete. This is general guidance, not an AI diagnosis.';return}
+     throw new Error(data.error||'AI service unavailable');
+   }
+   loading.textContent=assistantReply(q)+'\n\nThis is general rule-based guidance. Sign in and activate access for personalised AI guidance.';
+ }catch(error){
+   loading.textContent=assistantReply(q)+'\n\nAI could not connect right now; this is general guidance only. '+(error&&error.message?error.message:'Please try again later.');
+ }
+ $('messages').scrollTop=$('messages').scrollHeight;
+}
+$('chatForm').addEventListener('submit',e=>{e.preventDefault();ask($('chatInput').value)});
+
 function quickAsk(q){navigate('assistant');ask(q)}
 function startMkulimaVoice({buttonId,statusId,targetId,languageId,append=false}){
   const button=$(buttonId),status=$(statusId),target=$(targetId),language=$(languageId);
@@ -291,7 +314,8 @@ function startMkulimaVoice({buttonId,statusId,targetId,languageId,append=false})
         const part=event.results[i][0].transcript||'';
         if(event.results[i].isFinal)finalTranscript+=part;else interim+=part;
       }
-      if(interim)status.textContent='Listening: '+interim;
+      const preview=(finalTranscript+' '+interim).trim();
+      if(preview)status.textContent=(recognition.lang==='sw-KE'?'Imesikia: ':'Recognised: ')+preview;
       if(finalTranscript.trim()){
         const text=finalTranscript.trim();
         target.value=append?(target.value.trim()?target.value.trim()+' ':'')+text:text;
@@ -305,7 +329,14 @@ function startMkulimaVoice({buttonId,statusId,targetId,languageId,append=false})
       'Voice input could not finish. Try again or use your phone keyboard microphone. / Jaribu tena au tumia maikrofoni ya kibodi.';
       status.textContent=msg;
     };
-    recognition.onend=()=>{button.disabled=false;if(!finalTranscript.trim()&&!status.textContent.includes('denied')&&!status.textContent.includes('support'))status.textContent='No clear speech received. Try again or type. / Hakuna sauti iliyoeleweka; jaribu tena au andika.'};
+    recognition.onend=()=>{
+      button.disabled=false;
+      if(!finalTranscript.trim()&&target.value.trim()&&status.textContent.includes('Recognised:')){
+        status.textContent='Please tap the microphone again or use your keyboard microphone to insert the recognised words. / Bonyeza maikrofoni tena au tumia ya kibodi.';
+      }else if(!finalTranscript.trim()&&!status.textContent.includes('denied')&&!status.textContent.includes('support')&&!status.textContent.includes('unavailable')&&!status.textContent.includes('language')){
+        status.textContent='No clear speech received. Check microphone permission and try again, or use your keyboard microphone. / Hakuna sauti iliyoeleweka; ruhusu maikrofoni kisha ujaribu tena.';
+      }
+    };
     try{recognition.start()}catch(error){button.disabled=false;status.textContent='Could not start microphone. Try again or type. / Haikuweza kuwasha maikrofoni.'}
   });
 }
