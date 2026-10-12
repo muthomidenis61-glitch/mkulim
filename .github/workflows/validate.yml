@@ -84,10 +84,10 @@ jobs:
           missing = [item for item in required if item not in page]
           if missing:
               raise SystemExit("FAIL: Missing veterinary safety or workflow requirement: " + ", ".join(missing))
-          scripts = re.findall(r"<script(?:\\s[^>]*)?>(.*?)</script>", page, flags=re.I | re.S)
+          scripts = re.findall(r"<script(?:\s[^>]*)?>(.*?)</script>", page, flags=re.I | re.S)
           if len(scripts) != 1:
               raise SystemExit("FAIL: Expected one inline script in veterinary examination page")
-          Path("/tmp/mkulima-vet-examination.js").write_text("\\n;\\n".join(scripts), encoding="utf-8")
+          Path("/tmp/mkulima-vet-examination.js").write_text("\n;\\n".join(scripts), encoding="utf-8")
           if 'href="/veterinary-examination.html"' not in Path("index.html").read_text(encoding="utf-8"):
               raise SystemExit("FAIL: Doctor view does not link to the veterinary examination workspace")
           print("PASS: Veterinary workspace safety content, script extraction, and dashboard link.")
