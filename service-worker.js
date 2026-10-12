@@ -1,5 +1,5 @@
-const CACHE_NAME = 'mkulima-shell-v1';
-const APP_SHELL = ['/'];
+const CACHE_NAME = 'mkulima-shell-v2';
+const APP_SHELL = ['/', '/manifest.webmanifest', '/mkulima-icon.svg'];
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -26,7 +26,7 @@ self.addEventListener('fetch', event => {
       fetch(request).then(response => {
         if (response && response.ok) {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put('/', copy));
+          event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.put('/', copy)));
         }
         return response;
       }).catch(async () => (await caches.match(request)) || (await caches.match('/')))
