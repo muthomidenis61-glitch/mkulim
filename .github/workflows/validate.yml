@@ -41,7 +41,12 @@ jobs:
               "navigator.serviceWorker.register",
               'rel="manifest"',
               "voiceInputBtn",
-              "window.webkitSpeechRecognition"
+              "window.webkitSpeechRecognition",
+              "Trusted Kenyan farming resources",
+              "https://keep.kalro.org/",
+              "https://www.kephis.go.ke/",
+              "https://dvs.ecitizen.go.ke/",
+              "Could not save this change on this device"
           ]
           missing = [item for item in required if item not in html]
           if missing:
