@@ -438,11 +438,10 @@ jobs:
           for term in ["requireUser(event)", "mkulima_trials", "mkulima_payments", "mkulima_subscriptions", "mkulima_farm_records", "rpc/finalize_mkulima_payment", "DARAJA_CONSUMER_KEY", "does not initiate a charge"]:
             if term.lower() not in health.lower():
               raise SystemExit("FAIL: backend diagnostics missing " + term)
-          scripts = re.findall(r'<script\\b([^>]*)>(.*?)</script\\s*>', page, flags=re.I | re.S)
-          inline = [body for attrs, body in scripts if not re.search(r'\\bsrc\\s*=', attrs, flags=re.I) and (not re.search(r'\\btype\\s*=\\s*["\\']([^"\\']+)', attrs, flags=re.I) or re.search(r'\\btype\\s*=\\s*["\\'](text/javascript|application/javascript|module)["\\']', attrs, flags=re.I))]
-          if not inline:
-            raise SystemExit("FAIL: subscription page has no inline JavaScript to validate")
-          Path("/tmp/mkulima-subscription-diagnostics.js").write_text("\\n;\\n".join(inline), encoding="utf-8")
+          scripts = re.findall(r"<script[^>]*>(.*?)</script\\s*>", page, flags=re.I | re.S)
+          if not scripts:
+            raise SystemExit("FAIL: subscription page has no script to validate")
+          Path("/tmp/mkulima-subscription-diagnostics.js").write_text("\\n;\\n".join(scripts), encoding="utf-8")
           print("PASS: authenticated backend diagnostics, Supabase schema checks, payment RPC probe and non-charging Daraja OAuth check.")
           PY
           node --check /tmp/mkulima-subscription-diagnostics.js
