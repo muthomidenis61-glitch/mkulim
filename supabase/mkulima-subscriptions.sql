@@ -50,6 +50,23 @@ grant all on public.mkulima_payments to service_role;
 grant all on public.mkulima_subscriptions to service_role;
 
 
+-- Server-side, account-scoped cloud farm records for subscribed users.
+-- Only Netlify functions using the service role may read/write these records.
+create table if not exists public.mkulima_farm_records (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  record_type text not null check (record_type in ('farm_note','crop_record','livestock_record','expense','sale','inventory')),
+  title text not null check (char_length(title) between 1 and 120),
+  data jsonb not null default '{}'::jsonb check (pg_column_size(data) <= 65536),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists mkulima_farm_records_user_updated_idx
+  on public.mkulima_farm_records (user_id, updated_at desc);
+alter table public.mkulima_farm_records enable row level security;
+revoke all on public.mkulima_farm_records from anon, authenticated;
+grant all on public.mkulima_farm_records to service_role;
+
 -- Finalise a verified M-Pesa payment and grant access in one database transaction.
 -- Row locking makes duplicate/concurrent callbacks idempotent, and early renewals
 -- preserve the unused time on an existing active subscription.
