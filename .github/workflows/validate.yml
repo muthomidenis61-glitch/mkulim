@@ -121,7 +121,7 @@ jobs:
           if 'href="/farm-resource-centre.html"' not in Path("index.html").read_text(encoding="utf-8"):
               raise SystemExit("FAIL: MKULIMA dashboard does not link to farm resource centre")
           import re
-          scripts = re.findall(r"<script(?:\\s[^>]*)?>(.*?)</script>", page, flags=re.I | re.S)
+          scripts = re.findall(r"<script(?:\s[^>]*)?>(.*?)</script>", page, flags=re.I | re.S)
           if len(scripts) != 1:
               raise SystemExit("FAIL: Expected one inline script in resource centre")
           Path("/tmp/mkulima-resource-centre.js").write_text("\n;\n".join(scripts), encoding="utf-8")
@@ -159,3 +159,33 @@ jobs:
           print("PASS: Farm planner records, tasks, ledger, backup, privacy, dashboard link and script extraction.")
           PY
           node --check /tmp/mkulima-farm-planner.js
+
+      - name: Validate M-Pesa instructions and payment safeguards
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          page = Path("payments.html").read_text(encoding="utf-8")
+          required = [
+              "M-Pesa payment information",
+              "303030",
+              "2051513056",
+              "payment processing is not automated yet".lower(),
+              "has not independently verified the payee",
+              "Keep your M-Pesa confirmation message",
+              "AVENQOR HOLDINGS LTD"
+          ]
+          lower = page.lower()
+          missing = [item for item in required if item.lower() not in lower]
+          if missing:
+              raise SystemExit("FAIL: Payment page missing required safety/details: " + ", ".join(missing))
+          scripts = re.findall(r"<script(?:\\s[^>]*)?>(.*?)</script>", page, flags=re.I | re.S)
+          if len(scripts) != 1:
+              raise SystemExit("FAIL: Expected one inline script in payment page")
+          Path("/tmp/mkulima-payments.js").write_text("\n;\n".join(scripts), encoding="utf-8")
+          if 'href="/payments.html"' not in Path("index.html").read_text(encoding="utf-8"):
+              raise SystemExit("FAIL: Subscription view does not link to payment instructions")
+          print("PASS: M-Pesa details, safety disclaimers, and dashboard link.")
+          PY
+          node --check /tmp/mkulima-payments.js
