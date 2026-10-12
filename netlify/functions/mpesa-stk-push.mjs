@@ -7,6 +7,10 @@ export default async event => {
   try {
     const user = await requireUser(event), b = await readBody(event), plan = plans[b.plan];
     if (!plan) throw new Error("Choose Weekly (KSh 300) or Monthly (KSh 1,050).");
+    // Enforce the duplicate-prompt guard on the server; browser checks alone can be bypassed.
+    const pendingSince = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const pending = await adminRest("mkulima_payments", { query: "?select=checkout_request_id,created_at&user_id=eq." + encodeURIComponent(user.id) + "&status=eq.pending&created_at=gte." + encodeURIComponent(pendingSince) + "&order=created_at.desc&limit=1" });
+    if (pending.length) throw new Error("You already have an M-Pesa request in progress. Wait a few minutes, then refresh subscription status before trying again.");
     const phone = normalizeKenyanPhone(b.phone);
     const envName = (process.env.DARAJA_ENV || "sandbox").toLowerCase();
     const host = envName === "production" ? "https://api.safaricom.co.ke" : "https://sandbox.safaricom.co.ke";
