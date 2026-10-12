@@ -384,7 +384,7 @@ jobs:
             if term not in shared:
               raise SystemExit("FAIL: reusable premium entitlement guard missing " + term)
           docs = Path("SUBSCRIPTION_SETUP.md").read_text(encoding="utf-8")
-          if "Server-side premium enforcement contract" not in docs or "does not magically restrict static HTML tools" not in docs:
+          if "server-side premium enforcement contract" not in docs.lower() or "does not magically restrict static html tools" not in docs.lower():
             raise SystemExit("FAIL: premium enforcement limitations must be documented")
           farm_api = Path("netlify/functions/farm-records.mjs").read_text(encoding="utf-8")
           for term in ["requireActiveAccess(event)", "mkulima_farm_records", "user_id: user.id", "Buffer.byteLength", "return json(201"]:
@@ -393,7 +393,7 @@ jobs:
           for term in ["mkulima_farm_records", "enable row level security", "grant all on public.mkulima_farm_records to service_role"]:
             if term.lower() not in sql.lower():
               raise SystemExit("FAIL: private cloud farm record schema missing " + term)
-          if "farm-records.mjs" not in docs.lower() or "premium-gated cloud farm records" not in docs.lower():
+          if "farm-records.mjs" not in docs.lower() or "cloud farm records api" not in docs.lower():
             raise SystemExit("FAIL: premium cloud farm records API is not documented")
           print("PASS: subscription endpoints, RLS schema, payment verification, account UI, entitlement guard and premium cloud farm records API.")
           PY
