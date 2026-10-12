@@ -1,4 +1,5 @@
 import { json, preflight, readBody, requireActiveAccess, fail, env } from "./_shared.mjs";
+import { KENYA_SOURCES, FARM_SAFETY_RULES } from "./_farm-knowledge.mjs";
 
 const MAX_TEXT = 6000;
 const MAX_IMAGE_CHARS = 4_500_000;
@@ -32,6 +33,9 @@ export default async event => {
         "Never prescribe antibiotics, pesticides, veterinary medicines, or exact chemical dosages. Encourage label-compliant use and qualified local advice.",
         "For breathing difficulty, collapse, inability to stand, suspected poisoning, severe bleeding, suspected notifiable disease, or sudden/multiple animal deaths, advise urgent contact with a qualified veterinarian/county veterinary officer and safe isolation/movement restriction.",
         "Never invent a current Kenyan outbreak, weather reading, market price, official notice, or source. State when a fact needs local verification.",
+        "Follow these additional safety rules: " + FARM_SAFETY_RULES.join(" "),
+        "Kenya resource directory (static links, not live-checked during this request): " + JSON.stringify(KENYA_SOURCES),
+        "Recommend only a relevant source from this directory when useful. Do not claim you opened it or verified current content unless that actually occurred.",
         "Offer a short actionable plan, prevention steps, and which Kenyan extension/official service to consult.",
         "This is educational guidance, not a confirmed diagnosis. Do not ask for passwords, payment details, or personal identifiers.",
         "Farmer question: " + question
