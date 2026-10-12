@@ -128,3 +128,34 @@ jobs:
           print("PASS: Kenyan resource centre links, safety text, dashboard link and script extraction.")
           PY
           node --check /tmp/mkulima-resource-centre.js
+
+      - name: Validate farm planner and ledger
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          page = Path("farm-planner.html").read_text(encoding="utf-8")
+          required = [
+              "Farm Planner & Records",
+              "AVENQOR HOLDINGS LTD",
+              "mkulimaFarmPlanner_v1",
+              "Tasks & reminders",
+              "Income & expenses",
+              "Download backup (JSON)",
+              "Validate and restore backup",
+              "Records stay on this device",
+              "No cloud sync is provided by this page"
+          ]
+          missing = [item for item in required if item not in page]
+          if missing:
+              raise SystemExit("FAIL: Farm planner missing requirements: " + ", ".join(missing))
+          if 'href="/farm-planner.html"' not in Path("index.html").read_text(encoding="utf-8"):
+              raise SystemExit("FAIL: MKULIMA does not link to the farm planner")
+          import re
+          scripts = re.findall(r"<script(?:\\s[^>]*)?>(.*?)</script>", page, flags=re.I | re.S)
+          if len(scripts) != 1:
+              raise SystemExit("FAIL: Expected one inline script in farm planner")
+          Path("/tmp/mkulima-farm-planner.js").write_text("\n;\n".join(scripts), encoding="utf-8")
+          print("PASS: Farm planner records, tasks, ledger, backup, privacy, dashboard link and script extraction.")
+          PY
+          node --check /tmp/mkulima-farm-planner.js
