@@ -21,7 +21,7 @@ export default async event => {
       throw new Error("Image must be a JPEG, PNG or WebP photo under about 3 MB.");
     }
 
-    const model = process.env.OPENAI_MODEL || "gpt-6-astra";
+    const model = process.env.OPENAI_MODEL || "gpt-4.1-mini";
     const inputContent = [{
       type: "input_text",
       text: [
