@@ -58,9 +58,13 @@ create table if not exists public.mkulima_farm_records (
   record_type text not null check (record_type in ('farm_note','crop_record','livestock_record','expense','sale','inventory')),
   title text not null check (char_length(title) between 1 and 120),
   data jsonb not null default '{}'::jsonb check (pg_column_size(data) <= 65536),
+  client_record_id text check (client_record_id is null or char_length(client_record_id) between 1 and 100),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+alter table public.mkulima_farm_records add column if not exists client_record_id text;
+create unique index if not exists mkulima_farm_records_client_id_unique
+  on public.mkulima_farm_records (user_id, client_record_id) where client_record_id is not null;
 create index if not exists mkulima_farm_records_user_updated_idx
   on public.mkulima_farm_records (user_id, updated_at desc);
 alter table public.mkulima_farm_records enable row level security;
