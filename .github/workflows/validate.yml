@@ -41,6 +41,10 @@ jobs:
               "navigator.serviceWorker.register",
               'rel="manifest"',
               "voiceInputBtn",
+              "voiceLanguageDoctor",
+              "voiceLanguageAssistant",
+              "startMkulimaVoice",
+              "assistantVoiceBtn",
               "window.webkitSpeechRecognition",
               "Trusted Kenyan farming resources",
               "https://keep.kalro.org/",
@@ -93,3 +97,34 @@ jobs:
           print("PASS: Veterinary workspace safety content, script extraction, and dashboard link.")
           PY
           node --check /tmp/mkulima-vet-examination.js
+
+      - name: Validate Kenyan farm resource centre
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          page = Path("farm-resource-centre.html").read_text(encoding="utf-8")
+          required = [
+              "Kenyan Farm Resource Centre",
+              "AVENQOR HOLDINGS LTD",
+              "https://keep.kalro.org/",
+              "https://kalrogaps.info/",
+              "https://dvs.ecitizen.go.ke/",
+              "https://kephis.go.ke/phytosanitary-services",
+              "https://kamis.kilimo.go.ke/",
+              "No resources match that search",
+              "qualified veterinary professional"
+          ]
+          missing = [item for item in required if item not in page]
+          if missing:
+              raise SystemExit("FAIL: Farm resource centre missing requirements: " + ", ".join(missing))
+          if 'href="/farm-resource-centre.html"' not in Path("index.html").read_text(encoding="utf-8"):
+              raise SystemExit("FAIL: MKULIMA dashboard does not link to farm resource centre")
+          import re
+          scripts = re.findall(r"<script(?:\\s[^>]*)?>(.*?)</script>", page, flags=re.I | re.S)
+          if len(scripts) != 1:
+              raise SystemExit("FAIL: Expected one inline script in resource centre")
+          Path("/tmp/mkulima-resource-centre.js").write_text("\n;\n".join(scripts), encoding="utf-8")
+          print("PASS: Kenyan resource centre links, safety text, dashboard link and script extraction.")
+          PY
+          node --check /tmp/mkulima-resource-centre.js
