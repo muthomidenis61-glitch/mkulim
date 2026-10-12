@@ -294,10 +294,10 @@ jobs:
           missing = [x for x in required_app if x.lower() not in app.lower()]
           if missing:
             raise SystemExit("FAIL: trial or security link missing: " + ", ".join(missing))
-          scripts = re.findall(r"<script(?:\\s[^>]*)?>(.*?)</script>", app, flags=re.I | re.S)
+          scripts = re.findall("<script[^>]*>(.*?)</script>", app, flags=re.I | re.S)
           if not scripts:
             raise SystemExit("FAIL: no app scripts found")
-          Path("/tmp/mkulima-trial.js").write_text("\\n;\\n".join(scripts), encoding="utf-8")
+          Path("/tmp/mkulima-trial.js").write_text("\n;\n".join(scripts), encoding="utf-8")
           security = Path("security.html").read_text(encoding="utf-8")
           required_security = ["Security & Privacy Centre", "Content Security Policy", "multi-factor authentication", "not yet implemented", "AVENQOR HOLDINGS LTD"]
           missing = [x for x in required_security if x.lower() not in security.lower()]
