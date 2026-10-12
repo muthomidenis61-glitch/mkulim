@@ -359,7 +359,7 @@ jobs:
           if missing:
             raise SystemExit("FAIL: missing subscription components: " + ", ".join(missing))
           sql = Path("supabase/mkulima-subscriptions.sql").read_text(encoding="utf-8")
-          for term in ["mkulima_trials", "mkulima_payments", "mkulima_subscriptions", "enable row level security", "revoke all"]:
+          for term in ["mkulima_trials", "mkulima_payments", "mkulima_subscriptions", "enable row level security", "revoke all", "finalize_mkulima_payment", "for update", "alreadyProcessed", "grant execute on function public.finalize_mkulima_payment"]:
             if term.lower() not in sql.lower():
               raise SystemExit("FAIL: subscription schema missing " + term)
           status = Path("netlify/functions/subscription-status.mjs").read_text(encoding="utf-8")
@@ -367,7 +367,7 @@ jobs:
             if term not in status:
               raise SystemExit("FAIL: payment status endpoint missing " + term)
           callback = Path("netlify/functions/mpesa-callback.mjs").read_text(encoding="utf-8")
-          for term in ["querySafaricom", "MpesaReceiptNumber", "Number(meta.Amount)", "payment.phone", "status:\"paid\""]:
+          for term in ["querySafaricom", "MpesaReceiptNumber", "Number(meta.Amount)", "payment.phone", "rpc/finalize_mkulima_payment"]:
             if term not in callback:
               raise SystemExit("FAIL: payment verification missing " + term)
           page = Path("subscription.html").read_text(encoding="utf-8")
