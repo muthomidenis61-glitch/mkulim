@@ -31,6 +31,11 @@ Never paste these secrets into ChatGPT, source code, GitHub issues, or a public 
 5. Start a sandbox STK request; verify pending payment is not active. Exercise successful, cancelled, wrong-amount and duplicate callback cases. A subscription is granted only after the server-side STK query and amount/phone/receipt checks pass and the SQL finalisation function completes.
 6. Only after end-to-end sandbox tests and payee ownership confirmation, switch Daraja to production and set production credentials. Do not collect a user's M-Pesa PIN on MKULIMA.
 
+## Server-side premium enforcement contract
+A reusable `requireActiveAccess(event)` guard now lives in `netlify/functions/_shared.mjs`. Every Netlify function that performs a premium-only action must call and await this guard before reading or changing protected data, for example `const { user, access } = await requireActiveAccess(event);`. It verifies the bearer session against Supabase Auth and checks the current paid subscription or trial against server-side database timestamps; it returns HTTP 403 when access is inactive and fails closed if the database/configuration cannot be checked. Never trust a plan name, receipt, phone number, user ID, or `access.active` value supplied by the browser.
+
+This guard strengthens the backend foundation, but it does not magically restrict static HTML tools or browser-local features. A premium tool is enforced only after its sensitive operation is moved behind a Netlify function that invokes this guard. Do not advertise all tools as paywalled until each premium operation has been migrated and tested.
+
 ## How paid access activates
 After a successful M-Pesa payment is confirmed by the server and `finalize_mkulima_payment` completes, the paid entitlement is attached to the signed-in MKULIMA account. The subscription page polls for confirmation and displays a **Subscription active — open farm tools** button as soon as the server reports active access; no separate SMS code is needed to claim the subscription. This avoids a second code-delivery dependency and prevents a receipt or guessed code from granting access. The user's M-Pesa PIN is entered only in the official Safaricom prompt.
 
