@@ -39,7 +39,9 @@ jobs:
               "image analysis is not connected",
               "todayLocalDate",
               "navigator.serviceWorker.register",
-              'rel="manifest"'
+              'rel="manifest"',
+              "voiceInputBtn",
+              "window.webkitSpeechRecognition"
           ]
           missing = [item for item in required if item not in html]
           if missing:
