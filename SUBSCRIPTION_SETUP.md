@@ -31,6 +31,11 @@ Never paste these secrets into ChatGPT, source code, GitHub issues, or a public 
 5. Start a sandbox STK request; verify pending payment is not active. Exercise successful, cancelled, wrong-amount and duplicate callback cases. A subscription is granted only after the server-side STK query and amount/phone/receipt checks pass and the SQL finalisation function completes.
 6. Only after end-to-end sandbox tests and payee ownership confirmation, switch Daraja to production and set production credentials. Do not collect a user's M-Pesa PIN on MKULIMA.
 
+## How paid access activates
+After a successful M-Pesa payment is confirmed by the server and `finalize_mkulima_payment` completes, the paid entitlement is attached to the signed-in MKULIMA account. The subscription page polls for confirmation and displays a **Subscription active — open farm tools** button as soon as the server reports active access; no separate SMS code is needed to claim the subscription. This avoids a second code-delivery dependency and prevents a receipt or guessed code from granting access. The user's M-Pesa PIN is entered only in the official Safaricom prompt.
+
+An SMS receipt/notification is not currently sent by MKULIMA: that requires a separately configured SMS provider and credentials. The account's on-page activation is the current immediate confirmation path. The button is a navigation convenience, not proof that every static dashboard feature is access-controlled; enforce server-side entitlements for premium-only backend operations before claiming the whole site is paywalled.
+
 ## Current billing rules
 - Weekly: KSh 300 for 7 days.
 - Monthly: KSh 1,050 for 30 days.
