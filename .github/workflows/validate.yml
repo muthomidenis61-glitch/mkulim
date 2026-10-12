@@ -600,6 +600,7 @@ jobs:
           ui = Path("voice-assistant.html").read_text(encoding="utf-8")
           sync = Path("farmbook-cloud.html").read_text(encoding="utf-8")
           setup = Path("SUBSCRIPTION_SETUP.md").read_text(encoding="utf-8")
+          knowledge = Path("netlify/functions/_farm-knowledge.mjs").read_text(encoding="utf-8")
           checks = {
             "AI authentication and entitlement": "requireActiveAccess(event)" in ai,
             "AI provider key remains server-side": 'env("OPENAI_API_KEY")' in ai and "OPENAI_API_KEY" in setup,
@@ -609,6 +610,8 @@ jobs:
             "Database unique client ID": "mkulima_farm_records_client_id_unique" in sql,
             "UI reads persisted client ID": "r.client_record_id" in sync,
             "Avenqor brand visible on AI page": "AVENQOR HOLDINGS LTD" in ui,
+            "Kenyan official agriculture resource directory": "https://keep.kalro.org/" in knowledge and "https://kabsurveillance.kilimo.go.ke/" in knowledge,
+            "AI uses Kenya knowledge and safety pack": "KENYA_SOURCES" in ai and "FARM_SAFETY_RULES" in ai,
           }
           failed = [name for name, ok in checks.items() if not ok]
           if failed:
