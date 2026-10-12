@@ -4,7 +4,7 @@ The code in this change adds account registration/login, a server-timed one-use 
 
 ## 1. Supabase
 1. Create/open the project in the official Supabase dashboard.
-2. In SQL Editor, run the complete file `supabase/mkulima-subscriptions.sql`.
+2. In SQL Editor, run the complete, latest file `supabase/mkulima-subscriptions.sql`. **This is required after the latest code change** because the M-Pesa callback now calls the database function `public.finalize_mkulima_payment(...)`. If you ran an older version of this SQL previously, run the entire updated file again; it uses `create or replace function` for the new function.
 3. In Authentication settings, configure email confirmation and the production site URL/redirect URLs. For a first test, use a test account you control.
 4. Copy the project URL and publishable/anon key from the project API settings. The service-role key must stay private.
 
@@ -28,7 +28,7 @@ Never paste these secrets into ChatGPT, source code, GitHub issues, or a public 
 2. Deploy the functions after setting the Supabase schema and required variables.
 3. Register a test user, confirm email if required, and sign in at `/subscription.html`.
 4. Start a Discovery Pass; verify a single row in `mkulima_trials`, then try again and confirm the original expiry is returned.
-5. Start a sandbox STK request; verify pending payment is not active. Exercise successful, cancelled, wrong-amount and duplicate callback cases. A subscription is granted only after the server-side STK query and amount/phone/receipt checks pass.
+5. Start a sandbox STK request; verify pending payment is not active. Exercise successful, cancelled, wrong-amount and duplicate callback cases. A subscription is granted only after the server-side STK query and amount/phone/receipt checks pass and the SQL finalisation function completes.
 6. Only after end-to-end sandbox tests and payee ownership confirmation, switch Daraja to production and set production credentials. Do not collect a user's M-Pesa PIN on MKULIMA.
 
 ## Current billing rules
@@ -46,4 +46,4 @@ Never paste these secrets into ChatGPT, source code, GitHub issues, or a public 
 - `/.netlify/functions/mpesa-stk-push`
 - `/.netlify/functions/mpesa-callback`
 
-Without the environment variables, Supabase SQL setup, and valid Daraja credentials, the UI reports setup is incomplete; it must not claim a payment or paid plan is active.
+Without the environment variables, Supabase SQL setup (including `finalize_mkulima_payment`), and valid Daraja credentials, the UI reports setup is incomplete; it must not claim a payment or paid plan is active. A successful GitHub Actions check validates code structure and syntax, but does not run live M-Pesa payments or apply SQL to your Supabase project.
