@@ -378,7 +378,14 @@ jobs:
           if not scripts:
             raise SystemExit("FAIL: subscription centre has no client script")
           Path("/tmp/mkulima-subscription.js").write_text("\\n;\\n".join(scripts), encoding="utf-8")
-          print("PASS: subscription endpoints, RLS schema, payment verification and account UI.")
+          shared = Path("netlify/functions/_shared.mjs").read_text(encoding="utf-8")
+          for term in ["export async function requireActiveAccess(event)", "await requireUser(event)", "mkulima_subscriptions", "mkulima_trials", "error.statusCode = 403", "Number(error?.statusCode)"]:
+            if term not in shared:
+              raise SystemExit("FAIL: reusable premium entitlement guard missing " + term)
+          docs = Path("SUBSCRIPTION_SETUP.md").read_text(encoding="utf-8")
+          if "Server-side premium enforcement contract" not in docs or "does not magically restrict static HTML tools" not in docs:
+            raise SystemExit("FAIL: premium enforcement limitations must be documented")
+          print("PASS: subscription endpoints, RLS schema, payment verification, account UI and fail-closed entitlement guard.")
           PY
           node --check /tmp/mkulima-subscription.js
 
