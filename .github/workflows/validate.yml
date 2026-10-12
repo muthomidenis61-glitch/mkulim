@@ -189,3 +189,33 @@ jobs:
           print("PASS: M-Pesa details, safety disclaimers, and dashboard link.")
           PY
           node --check /tmp/mkulima-payments.js
+
+      - name: Validate bilingual voice assistant and visual guide
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          checks = {
+            "voice-assistant.html": ["Kiswahili", "English", "SpeechRecognition", "SpeechSynthesisUtterance", "Read answer aloud", "rule-based", "DENIS MUTHOMI"],
+            "farm-visual-guide.html": ["MAIZE", "CHICKEN", "COW", "not photographs", "mastitis", "fall armyworm"],
+          }
+          for filename, terms in checks.items():
+            page = Path(filename).read_text(encoding="utf-8")
+            missing = [term for term in terms if term.lower() not in page.lower()]
+            if missing:
+              raise SystemExit(f"FAIL: {filename} missing: {missing}")
+            scripts = re.findall(r"<script(?:\s[^>]*)?>(.*?)</script>", page, flags=re.I | re.S)
+            if filename == "voice-assistant.html":
+              if len(scripts) != 1:
+                raise SystemExit("FAIL: expected one voice assistant script")
+              Path("/tmp/mkulima-voice.js").write_text("\n;\n".join(scripts), encoding="utf-8")
+            elif scripts:
+              raise SystemExit("FAIL: visual guide should not require inline scripts")
+          if 'href="/voice-assistant.html"' not in Path("index.html").read_text(encoding="utf-8"):
+            raise SystemExit("FAIL: dashboard missing voice assistant link")
+          if "DENIS MUTHOMI" not in Path("payments.html").read_text(encoding="utf-8"):
+            raise SystemExit("FAIL: payment page missing service contact name")
+          print("PASS: bilingual voice, visual guide, payment contact and safety notes.")
+          PY
+          node --check /tmp/mkulima-voice.js
