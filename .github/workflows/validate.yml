@@ -378,6 +378,50 @@ jobs:
           print(f"PASS: social metadata, share control, social preview, robots.txt, {len(urls)} sitemap URLs and branded 404 page.")
           PY
 
+      - name: Audit all HTML pages, internal links, IDs and inline JavaScript
+        shell: bash
+        run: |
+          set -e
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          pages = sorted(Path(".").glob("*.html"))
+          existing = {p.name for p in Path(".").iterdir() if p.is_file()}
+          existing.update(p.name for p in Path(".").rglob("*") if p.is_file())
+          if not pages:
+            raise SystemExit("FAIL: no HTML pages found")
+          for page in pages:
+            html = page.read_text(encoding="utf-8")
+            ids = re.findall(r'\bid=["\']([^"\']+)["\']', html)
+            duplicates = sorted({item for item in ids if ids.count(item) > 1})
+            if duplicates:
+              raise SystemExit(f"FAIL: duplicate IDs in {page}: {', '.join(duplicates)}")
+            refs = re.findall(r'\b(?:href|src)=["\']([^"\']+)["\']', html, flags=re.I)
+            missing = sorted({ref.split("#", 1)[0].split("?", 1)[0].lstrip("/") for ref in refs
+                              if ref.startswith("/") and not ref.startswith("//")
+                              and not ref.startswith("/#") and not ref.startswith("/?")
+                              and not ref.startswith("/.netlify/")
+                              and "://" not in ref
+                              and ref.split("#", 1)[0].split("?", 1)[0].lstrip("/")
+                              and ref.split("#", 1)[0].split("?", 1)[0].lstrip("/") not in existing})
+            if missing:
+              raise SystemExit(f"FAIL: broken root-relative references in {page}: {', '.join(missing)}")
+            scripts = re.findall(r'<script\b([^>]*)>(.*?)</script\s*>', html, flags=re.I | re.S)
+            n = 0
+            for attrs, body in scripts:
+              if re.search(r'\bsrc\s*=', attrs, flags=re.I):
+                continue
+              kind = re.search(r'\btype\s*=\s*["\']([^"\']+)', attrs, flags=re.I)
+              if kind and kind.group(1).lower() not in ("text/javascript", "application/javascript", "module"):
+                continue
+              n += 1
+              Path(f"/tmp/mkulima-audit-{page.stem}-{n}.js").write_text(body, encoding="utf-8")
+          print(f"PASS: audited {len(pages)} HTML pages for duplicate IDs, missing root-relative files and inline JavaScript syntax.")
+          PY
+          for file in /tmp/mkulima-audit-*.js; do
+            node --check "$file"
+          done
+
       - name: Validate secure subscription backend
         shell: bash
         run: |
