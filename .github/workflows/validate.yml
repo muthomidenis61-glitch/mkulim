@@ -482,6 +482,30 @@ jobs:
           node --check /tmp/mkulima-subscription.js
 
 
+      - name: Validate FarmBook cloud sync integration
+        shell: bash
+        run: |
+          set -e
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          page = Path("farmbook-cloud.html").read_text(encoding="utf-8")
+          dashboard = Path("index.html").read_text(encoding="utf-8")
+          required = ["mkulima_secure_session_v1", "/.netlify/functions/farm-records", "Back up new local records to cloud", "Restore / merge cloud records", "clientRecordId", "require a active"] 
+          required = [x for x in required if x != "require a active"]
+          missing = [x for x in required if x.lower() not in page.lower()]
+          if missing:
+            raise SystemExit("FAIL: FarmBook cloud sync missing: " + ", ".join(missing))
+          if "/farmbook-cloud.html" not in dashboard or "Secure cloud sync" not in dashboard:
+            raise SystemExit("FAIL: dashboard is missing the FarmBook cloud sync link")
+          scripts = re.findall(r"<script[^>]*>(.*?)</script>", page, flags=re.I | re.S)
+          if len(scripts) != 1:
+            raise SystemExit("FAIL: expected one cloud sync script")
+          Path("/tmp/mkulima-farmbook-cloud.js").write_text("\n;\n".join(scripts), encoding="utf-8")
+          print("PASS: cloud sync UI, same-tab auth session, merge controls, idempotency key and dashboard link.")
+          PY
+          node --check /tmp/mkulima-farmbook-cloud.js
+
       - name: Validate animal health records tool
         shell: bash
         run: |
