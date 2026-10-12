@@ -13,7 +13,7 @@ export default async event => {
 
     if (event.httpMethod === "GET") {
       const records = await adminRest("mkulima_farm_records", {
-        query: "?select=id,record_type,title,data,created_at,updated_at&user_id=eq." +
+        query: "?select=id,record_type,title,data,client_record_id,created_at,updated_at&user_id=eq." +
           encodeURIComponent(user.id) + "&order=updated_at.desc&limit=100"
       });
       return json(200, { ok: true, access, records });
@@ -23,6 +23,8 @@ export default async event => {
     const recordType = String(body.recordType || "");
     const title = String(body.title || "").trim();
     const data = body.data === undefined ? {} : body.data;
+    const clientRecordId = body.clientRecordId == null ? null : String(body.clientRecordId).trim();
+    if (clientRecordId !== null && (!clientRecordId || clientRecordId.length > 100)) throw new Error("Client record ID must be 1–100 characters.");
     if (!TYPES.has(recordType)) throw new Error("Choose a supported farm record type.");
     if (title.length < 1 || title.length > 120) throw new Error("Record title must be 1–120 characters.");
     if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Record data must be a JSON object.");
@@ -30,9 +32,9 @@ export default async event => {
 
     const saved = await adminRest("mkulima_farm_records", {
       method: "POST",
-      query: "",
-      body: { user_id: user.id, record_type: recordType, title, data, updated_at: new Date().toISOString() },
-      prefer: "return=representation"
+      query: clientRecordId ? "?on_conflict=user_id,client_record_id" : "",
+      body: { user_id: user.id, record_type: recordType, title, data, client_record_id: clientRecordId, updated_at: new Date().toISOString() },
+      prefer: clientRecordId ? "resolution=merge-duplicates,return=representation" : "return=representation"
     });
     return json(201, { ok: true, access, record: saved[0] || null });
   } catch (e) {
