@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mkulima-shell-v3';
+const CACHE_NAME = 'mkulima-shell-v4';
 const APP_SHELL = ['/', '/manifest.webmanifest', '/mkulima-icon.svg'];
 
 self.addEventListener('install', event => {
