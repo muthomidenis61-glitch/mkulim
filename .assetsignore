@@ -1,0 +1,12 @@
+# Do not publish repository metadata or local deployment state as public assets
+.git
+.git/**
+.wrangler
+.wrangler/**
+
+# Netlify function source is server-side code and is not executable as static Cloudflare assets
+netlify
+netlify/**
+
+# Internal development and documentation files
+*.md
